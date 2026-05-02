@@ -4,6 +4,7 @@ import { db } from "@/db";
 import * as schema from "@/lib/db/schema";
 import * as authSchema from "@/lib/db/auth-schema";
 import { Resend } from "resend";
+import VerificarEmail from "@/app/components/emails/VerificarEmail";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -17,10 +18,10 @@ export const auth = betterAuth({
     },
 
     emailVerification: {
-        sendOnSignIn: true,
+        sendOnSignUp: true,
         autoSignInAfterVerification: true,
         sendVerificationEmail: async ({ user, url }) => {
-            await sendVerificationEmail(user.email, url);
+            await sendVerificationEmail(user.email, url, user.name);
         }
     },
 
@@ -32,36 +33,13 @@ export const auth = betterAuth({
     },
 })
 
-async function sendVerificationEmail(email: string, url: string) {
+async function sendVerificationEmail(email: string, url: string, name: string) {
     const resend = new Resend(process.env.RESEND_API_KEY!);
 
     await resend.emails.send({
         from: `Tutoria <${process.env.EMAIL_FROM}>`,
         to: email,
         subject: 'Verifique seu endereço de e-mail',
-        html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-            <h2>Bem-vindo ao Tutoria!</h2>
-            <p>Clique no botão abaixo para confirmar seu e-mail e acessar a plataforma.</p>
-            <a
-            href="${url}"
-            style="
-                display: inline-block;
-                background: #7F77DD;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: 500;
-                margin-top: 16px;
-            "
-            >
-            Confirmar e-mail
-            </a>
-            <p style="margin-top: 24px; color: #888; font-size: 13px;">
-            Se você não criou uma conta, ignore este e-mail.
-            </p>
-        </div>
-        `,
+        react: <VerificarEmail url={url} name={name} />,
     })
 }
