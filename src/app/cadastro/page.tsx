@@ -22,9 +22,9 @@ export default function PaginaEscolherPerfil() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
-                    <Link href="/cadastro/estudante" className="group flex-1 flex gap-4 flex-col items-center shadow text-muted-foreground text-center border border-border rounded-lg p-4 hover:border-primary transition">
+                    <Link href="/cadastro/aluno" className="group flex-1 flex gap-4 flex-col items-center shadow text-muted-foreground text-center border border-border rounded-lg p-4 hover:border-primary transition">
                         <h2 className="text-lg font-semibold text-primary">Quero Aprender</h2>
-                        <FaBookOpen className="bg-secondary h-16 w-16 p-4 text-primary rounded group-hover:text-secondary group-hover:bg-primary" />
+                        <FaBookOpen className="bg-secondary h-16 w-16 p-4 text-primary rounded-lg group-hover:text-secondary group-hover:bg-primary" />
                         <p className="text mt-2">
                             Quero encontrar um tutor para me ajudar a aprender.
                         </p>
@@ -32,7 +32,7 @@ export default function PaginaEscolherPerfil() {
                     
                     <Link href="/cadastro/tutor" className="group flex-1 flex gap-4 flex-col items-center shadow text-muted-foreground text-center border border-border rounded-lg p-4 hover:border-primary transition">
                         <h2 className="text-lg font-semibold text-primary">Quero Ensinar</h2>
-                        <FaGraduationCap className="bg-secondary h-16 w-16 p-4 text-primary rounded group-hover:text-secondary group-hover:bg-primary" />
+                        <FaGraduationCap className="bg-secondary h-16 w-16 p-4 text-primary rounded-lg group-hover:text-secondary group-hover:bg-primary" />
                         <p className="text mt-1">
                             Cadastre-se como tutor e conecte-se com alunos
                         </p>
