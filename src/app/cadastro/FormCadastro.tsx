@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FaGoogle } from "react-icons/fa";
 import { authClient } from "@/lib/auth-client";
 import { FormCadastroSchema, schemaCadastro } from "@/schemas/cadastro";
+import { IMaskInput } from "react-imask";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -45,7 +46,7 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
             password: senha,
         }, {
             body: {
-                telefone,
+                telefone: telefone || null,
                 role
             }
         })
@@ -55,7 +56,7 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
             return
         }
 
-        router.push("/verificar-email")
+        router.push(`/verificar-email?email=${encodeURIComponent(email)}`)
     };
 
     return (
@@ -83,7 +84,7 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
                         <label htmlFor="telefone" className="text-sm font-medium text-foreground">
                             Telefone <span className="text-xs text-muted-foreground">(opcional)</span>
                         </label>
-                        <input id="telefone" type="tel" placeholder="(00) 00000-0000" {...register('telefone')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <IMaskInput id="telefone" mask="(00) 00000-0000" placeholder="(00) 00000-0000" {...register('telefone')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
                         {errors.telefone && <p className="text-red-500 text-sm mt-1">{errors.telefone.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">

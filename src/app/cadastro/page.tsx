@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FaAngleLeft, FaBookOpen, FaGraduationCap } from "react-icons/fa";
 
-export default function PaginaEscolherPerfil() {
+export default function EscolherPerfilPage() {
 
     return (
         <main className="bg-background min-h-screen flex flex-col items-center p-2">

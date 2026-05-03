@@ -17,9 +17,26 @@ export const auth = betterAuth({
         requireEmailVerification: true,
     },
 
+    user: {
+        additionalFields: {
+            telefone: {
+                type: "string",
+                required: false,
+                input: true,
+            },
+            role: {
+                type: "string",
+                required: true,
+                input: true,
+                defaultValue: "aluno",
+            }
+        }
+    },
+
     emailVerification: {
         sendOnSignUp: true,
         autoSignInAfterVerification: true,
+        callbackUrl: "/inicio",
         sendVerificationEmail: async ({ user, url }) => {
             await sendVerificationEmail(user.email, url, user.name);
         }
