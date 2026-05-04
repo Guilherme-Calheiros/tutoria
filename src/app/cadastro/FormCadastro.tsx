@@ -9,6 +9,7 @@ import { FormCadastroSchema, schemaCadastro } from "@/schemas/cadastro";
 import { IMaskInput } from "react-imask";
 import { useState } from "react";
 import Link from "next/link";
+import PasswordInput from "../components/PasswordInput";
 
 interface FormCadastroProps {
     tipo: 'tutor' | 'aluno';
@@ -98,14 +99,14 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
                         <label htmlFor="senha" className="text-sm font-medium text-foreground">
                             Senha
                         </label>
-                        <input id="senha" type="password" placeholder="Minimo 8 caracteres" {...register('senha')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <PasswordInput id="senha" placeholder="Minimo 8 caracteres" {...register('senha')} />
                         {errors.senha && <p className="text-red-500 text-sm mt-1">{errors.senha.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="confirmarSenha" className="text-sm font-medium text-foreground">
                             Confirmar Senha
                         </label>
-                        <input id="confirmarSenha" type="password" placeholder="Repita a senha" {...register('confirmarSenha')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <PasswordInput id="confirmarSenha" placeholder="Repita a senha" {...register('confirmarSenha')} />
                         {errors.confirmarSenha && <p className="text-red-500 text-sm mt-1">{errors.confirmarSenha.message}</p>}
                     </div>
 
