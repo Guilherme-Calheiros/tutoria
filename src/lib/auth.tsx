@@ -12,6 +12,21 @@ export const auth = betterAuth({
         schema: { ...schema, ...authSchema }
     }),
 
+    databaseHooks: {
+        user: {
+            create: {
+                after: async (user) => {
+                    if(user.role === "tutor"){
+                        await db.insert(schema.tutor).values({
+                            userId: user.id,
+                            modalidade: "ead",
+                        })
+                    }
+                }
+            }
+        }
+    },
+
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
@@ -36,7 +51,7 @@ export const auth = betterAuth({
     emailVerification: {
         sendOnSignUp: true,
         autoSignInAfterVerification: true,
-        callbackUrl: "/inicio",
+        redirectTo: "/inicio",
         sendVerificationEmail: async ({ user, url }) => {
             await sendVerificationEmail(user.email, url, user.name);
         }

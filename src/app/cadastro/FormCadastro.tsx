@@ -33,7 +33,7 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
     const { title, description, role } = configCadastro[tipo];
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormCadastroSchema>({
+    const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormCadastroSchema>({
         resolver: zodResolver(schemaCadastro)
     });
 
@@ -78,21 +78,21 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
                         <label htmlFor="nome" className="text-sm font-medium text-foreground">
                             Nome Completo
                         </label>
-                        <input id="nome" type="text" placeholder="Seu nome completo" {...register('nome')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <input id="nome" type="text" placeholder="Seu nome completo" {...register('nome')} className="field-default" />
                         {errors.nome && <p className="text-red-500 text-sm mt-1">{errors.nome.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="telefone" className="text-sm font-medium text-foreground">
                             Telefone <span className="text-xs text-muted-foreground">(opcional)</span>
                         </label>
-                        <IMaskInput id="telefone" mask="(00) 00000-0000" placeholder="(00) 00000-0000" {...register('telefone')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <IMaskInput id="telefone" mask="(00) 00000-0000" placeholder="(00) 00000-0000" onAccept={(value) => {setValue("telefone", value)}} className="field-default" />
                         {errors.telefone && <p className="text-red-500 text-sm mt-1">{errors.telefone.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="email" className="text-sm font-medium text-foreground">
                             Email
                         </label>
-                        <input id="email" type="email" placeholder="seu@email.com" {...register('email')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <input id="email" type="email" placeholder="seu@email.com" {...register('email')} className="field-default" />
                         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">

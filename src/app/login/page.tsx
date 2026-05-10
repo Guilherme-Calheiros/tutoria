@@ -60,7 +60,7 @@ export default function LoginPage() {
                         <label htmlFor="email" className="text-sm font-medium text-foreground">
                             Email
                         </label>
-                        <input id="email" type="email" placeholder="seu@email.com" {...register('email')} className="border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors" />
+                        <input id="email" type="email" placeholder="seu@email.com" {...register('email')} className="field-default" />
                         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">

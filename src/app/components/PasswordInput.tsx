@@ -9,7 +9,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((props, r
     return (
         <div className="relative w-full">
             <input
-                className="w-full border border-border rounded-lg px-4 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                className="w-full field-default"
                 type={show ? "text" : "password"}
                 ref={ref}
                 {...props}

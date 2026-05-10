@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 
@@ -17,6 +18,7 @@ export default async function InicioPage() {
     return (
         <main>
             <h1>Olá, {session.user.name}!</h1>
+            <Link href={`/perfil`}>Editar Perfil</Link>
         </main>
     )
 }
