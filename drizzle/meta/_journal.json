@@ -8,6 +8,13 @@
       "when": 1777723891602,
       "tag": "0000_tearful_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778519672802,
+      "tag": "0001_soft_iron_fist",
+      "breakpoints": true
     }
   ]
 }

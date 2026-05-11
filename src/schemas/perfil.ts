@@ -8,6 +8,7 @@ export const schemaPerfil = z.object({
     ensinaTurma: z.boolean().optional(),
     ensinaPrivado: z.boolean().optional(),
     valorHora: z.string().optional(),
+    voluntario: z.boolean().optional(),
     materias: z.array(z.number()).optional(),
     niveisEnsino: z.array(z.number()).optional(),
 }).superRefine((data, ctx) => {
@@ -19,6 +20,14 @@ export const schemaPerfil = z.object({
                 path: ["ensinaPrivado"]
             })
         }
+    }
+
+    if (data.voluntario && data.valorHora) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Voluntários não devem possuir valor por hora.",
+            path: ["valorHora"]
+        })
     }
 })
 

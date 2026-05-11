@@ -19,6 +19,7 @@ type tutorData = {
     ensinaTurma: boolean;
     ensinaPrivado: boolean;
     valorHora: string | null;
+    voluntario: boolean;
     materias: number[];
     niveisEnsino: number[];
 } | null;
@@ -56,6 +57,7 @@ export default function ProfileClient({
             ensinaTurma: tutorData?.ensinaTurma ?? false,
             ensinaPrivado: tutorData?.ensinaPrivado ?? true,
             valorHora: tutorData?.valorHora ?? undefined,
+            voluntario: tutorData?.voluntario ?? false,
             materias: tutorData?.materias ?? [],
             niveisEnsino: tutorData?.niveisEnsino ?? [],
         }
@@ -63,6 +65,7 @@ export default function ProfileClient({
 
     const materiasSelected = watch("materias") ?? [];
     const niveisEnsinoSelected = watch("niveisEnsino") ?? [];
+    const voluntario = watch("voluntario");
 
     const materiasOriginais = tutorData?.materias ?? [];
     const niveisEnsinoOriginais = tutorData?.niveisEnsino ?? [];
@@ -112,8 +115,12 @@ export default function ProfileClient({
         const diff: Partial<SchemaPerfil> = {};
 
         for(const key of Object.keys(dirtyFields) as Array<keyof SchemaPerfil>){
-            if (key === "materias" || key === "niveisEnsino") continue;
+            if (key === "materias" || key === "niveisEnsino" || key === "voluntario") continue;
             diff[key] = data[key] as any;
+        }
+
+        if (data.voluntario !== tutorData?.voluntario) {
+            diff.voluntario = data.voluntario;
         }
 
         const materiasDiff = !arraysIguais(
@@ -130,8 +137,6 @@ export default function ProfileClient({
         if(materiasDiff) diff.materias = materiasSelected;
         if(niveisEnsinoDiff) diff.niveisEnsino = niveisEnsinoSelected;
         
-        console.log(diff)
-        console.log(Object.keys(diff))
         if(Object.keys(diff).length === 0){
             setEditando(false);
             return;
@@ -191,7 +196,7 @@ export default function ProfileClient({
                                 <Campo label="Descrição" valor={tutorData.descricao ?? "Não informado"} />
                                 <Campo label="Modalidade" valor={tutorData.modalidade.toUpperCase()} />
                                 <Campo label="Atendimento" valor={[tutorData.ensinaPrivado && "Particular", tutorData.ensinaTurma && "Turma"].filter(Boolean).join(" e ")} />
-                                <Campo label="Valor por hora" valor={tutorData.valorHora ? `R$ ${tutorData.valorHora}` : "Voluntário"} />
+                                <Campo label="Forma de cobrança" valor={tutorData.voluntario ? "Tutor Voluntário" : tutorData.valorHora ? `R$ ${tutorData.valorHora} por hora` : "A combinar"} />
                             </Section>
                             <Section titulo="Matérias">
                                 <div className="flex flex-wrap gap-2">
@@ -250,7 +255,7 @@ export default function ProfileClient({
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-medium text-foreground">Modalidade</label>
-                                    <select {...register("modalidade")} className="field-default">
+                                    <select {...register("modalidade")} className="field-default max-w-xs">
                                         <option value="ead">EAD</option>
                                         <option value="presencial">Presencial</option>
                                         <option value="ambos">Ambos</option>
@@ -268,32 +273,58 @@ export default function ProfileClient({
                                     </label>
                                     {errors.ensinaPrivado && <p className="text-red-500 text-sm">{errors.ensinaPrivado.message}</p>}
                                 </div>
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-foreground">
-                                        Valor por hora <span className="text-muted-foreground font-normal">(deixe vazio se for voluntário)</span>
-                                    </label>
-                                    <IMaskInput
-                                        mask="R$ num"
-                                        blocks={{
-                                            num: {
-                                                mask: Number,
-                                                scale: 2,
-                                                thousandsSeparator: ".",
-                                                padFractionalZeros: true,
-                                                radix: ",",
-                                                min: 0,
-                                                max: 9999,
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium text-foreground">Forma de cobrança</label>
+                                    <label className="flex items-center gap-2 text-sm text-foreground">
+                                        <input type="checkbox" {...register("voluntario", {
+                                            onChange: (e) => {
+                                                if(e.target.checked){
+                                                    setValue("valorHora", undefined, {
+                                                        shouldDirty: true,
+                                                        shouldValidate: true
+                                                    })
+                                                }
                                             }
-                                        }}
-                                        placeholder="R$ 0,00"
-                                        className="field-default"
-                                        unmask={true}
-                                        onAccept={(value) => setValue("valorHora", value, {
-                                            shouldDirty: true,
-                                            shouldValidate: true
-                                        })}
-                                        defaultValue={formatarValorParaInput(tutorData?.valorHora)}
-                                    />
+                                        })} />
+                                        Atuo como voluntário
+                                    </label>
+                                    {!voluntario && (
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm font-medium text-foreground">
+                                                Valor por hora
+                                            </label>
+                                            <IMaskInput
+                                                mask="R$ num"
+                                                blocks={{
+                                                    num: {
+                                                        mask: Number,
+                                                        scale: 2,
+                                                        thousandsSeparator: ".",
+                                                        padFractionalZeros: true,
+                                                        radix: ",",
+                                                        min: 0,
+                                                        max: 9999,
+                                                    }
+                                                }}
+                                                placeholder="R$ 0,00"
+                                                className="field-default max-w-xs"
+                                                unmask={true}
+                                                onAccept={(value) => setValue("valorHora", value, {
+                                                    shouldDirty: true,
+                                                    shouldValidate: true
+                                                })}
+                                                defaultValue={formatarValorParaInput(tutorData?.valorHora)}
+                                            />
+                                            <span className="text-xs text-muted-foreground">
+                                                Deixe vazio caso prefira combinar o valor depois.
+                                            </span>
+                                        </div>
+                                    )}
+                                    {voluntario && (
+                                        <div className="text-sm text-muted-foreground">
+                                            Este tutor atua de forma voluntária.
+                                        </div>
+                                    )}
                                 </div>
                             </Section>
  

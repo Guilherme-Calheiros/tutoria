@@ -42,6 +42,7 @@ export default async function ProfilePage() {
             ensinaTurma: tutorResult.ensinaTurma,
             ensinaPrivado: tutorResult.ensinaPrivado,
             valorHora: tutorResult.valorHora,
+            voluntario: tutorResult.voluntario,
             materias: tutorResult.materias.map(tm => tm.materiaId),
             niveisEnsino: tutorResult.niveisEnsino.map(tn => tn.nivelEnsinoId)
         } : null

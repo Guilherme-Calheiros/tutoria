@@ -1,0 +1,1 @@
+ALTER TABLE "tutor" ADD COLUMN "voluntario" boolean DEFAULT false NOT NULL;

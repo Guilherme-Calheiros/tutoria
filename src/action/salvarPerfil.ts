@@ -46,6 +46,7 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
         ensinaTurma,
         modalidade,
         valorHora,
+        voluntario,
         materias,
         niveisEnsino
     } = parsed.data
@@ -65,7 +66,15 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
         if (modalidade !== undefined) atualizacoesTutor.modalidade = modalidade
         if (ensinaPrivado !== undefined) atualizacoesTutor.ensinaPrivado = ensinaPrivado
         if (ensinaTurma !== undefined) atualizacoesTutor.ensinaTurma = ensinaTurma
-        if (valorHora !== undefined) atualizacoesTutor.valorHora = valorHora ?? null
+        if (voluntario !== undefined) {
+            atualizacoesTutor.voluntario = voluntario
+            if (voluntario) {
+                atualizacoesTutor.valorHora = null
+            }
+        }
+        if (!voluntario && valorHora !== undefined) {
+            atualizacoesTutor.valorHora = valorHora || null
+        }
 
         if (Object.keys(atualizacoesTutor).length > 0){
             await db.update(tutor).set(atualizacoesTutor).where(eq(tutor.userId, id));
