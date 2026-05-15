@@ -15,7 +15,7 @@ export const schemaPerfil = z.object({
     if (data.ensinaPrivado !== undefined && data.ensinaTurma !== undefined) {
         if (!data.ensinaPrivado && !data.ensinaTurma) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: "custom",
                 message: "Selecione pelo menos um tipo de atendimento",
                 path: ["ensinaPrivado"]
             })
@@ -24,7 +24,7 @@ export const schemaPerfil = z.object({
 
     if (data.voluntario && data.valorHora) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             message: "Voluntários não devem possuir valor por hora.",
             path: ["valorHora"]
         })

@@ -12,7 +12,7 @@ export const schemaCadastro = z.object({
 }).superRefine((data, ctx) => {
     if (data.senha !== data.confirmarSenha) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             message: "As senhas não coincidem",
             path: ["confirmarSenha"]
         });
