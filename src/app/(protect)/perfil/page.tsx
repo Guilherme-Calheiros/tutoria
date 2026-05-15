@@ -33,6 +33,7 @@ export default async function ProfilePage() {
                         nivelEnsino: true
                     }
                 },
+                enderecos: true,
             }
         });
 
@@ -43,6 +44,7 @@ export default async function ProfilePage() {
             ensinaPrivado: tutorResult.ensinaPrivado,
             valorHora: tutorResult.valorHora,
             voluntario: tutorResult.voluntario,
+            enderecos: tutorResult.enderecos,
             materias: tutorResult.materias.map(tm => tm.materiaId),
             niveisEnsino: tutorResult.niveisEnsino.map(tn => tn.nivelEnsinoId)
         } : null

@@ -3,26 +3,24 @@
 import { salvarPerfil } from "@/action/salvarPerfil";
 import Campo from "@/app/components/CampoLabel";
 import Section from "@/app/components/Section";
+import { enderecoAtendimento, TutorSelect } from "@/lib/db/schema";
 import { schemaPerfil, SchemaPerfil } from "@/schemas/perfil";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { FaPencilAlt } from "react-icons/fa";
+import { useFieldArray, useForm } from "react-hook-form";
+import { FaPencilAlt, FaTrash } from "react-icons/fa";
 import { IMaskInput } from "react-imask";
 
 type Materia = { id: number; nome: string }
 type NivelEnsino = { id: number; nome: string }
 
-type tutorData = {
-    descricao: string | null;
-    modalidade: "ead" | "presencial" | "ambos";
-    ensinaTurma: boolean;
-    ensinaPrivado: boolean;
-    valorHora: string | null;
-    voluntario: boolean;
+type EnderecoSelect = typeof enderecoAtendimento.$inferSelect
+
+type tutorData = (Omit<TutorSelect, "userId"> & {
     materias: number[];
     niveisEnsino: number[];
-} | null;
+    enderecos: EnderecoSelect[];
+}) | null;
 
 type ProfileClientProps = {
     userId: string;
@@ -47,7 +45,7 @@ export default function ProfileClient({
     const [error, setError] = useState<string | null>(null);
     const [sucesso, setSucesso] = useState(false);
 
-    const { register, handleSubmit, watch, setValue, reset, formState: { errors, isSubmitting, dirtyFields } } = useForm<SchemaPerfil>({
+    const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting, dirtyFields } } = useForm<SchemaPerfil>({
         resolver: zodResolver(schemaPerfil),
         defaultValues: {
             nome,
@@ -60,12 +58,26 @@ export default function ProfileClient({
             voluntario: tutorData?.voluntario ?? false,
             materias: tutorData?.materias ?? [],
             niveisEnsino: tutorData?.niveisEnsino ?? [],
+            enderecos: tutorData?.enderecos.map(e => ({
+                id: e.id,
+                bairro: e.bairro,
+                cidade: e.cidade,
+                estado: e.estado,
+            })) ?? [],
         }
+    })
+
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: "enderecos"
     })
 
     const materiasSelected = watch("materias") ?? [];
     const niveisEnsinoSelected = watch("niveisEnsino") ?? [];
+    const ensinaPrivado = watch("ensinaPrivado");
+    const ensinaTurma = watch("ensinaTurma");
     const voluntario = watch("voluntario");
+    const modalidade = watch("modalidade");
 
     const materiasOriginais = tutorData?.materias ?? [];
     const niveisEnsinoOriginais = tutorData?.niveisEnsino ?? [];
@@ -108,6 +120,19 @@ export default function ProfileClient({
         return valor.replace(".", ",")
     }
 
+    function formatarTelefone(valor: string | null | undefined): string {
+        if (!valor) return ""
+        const digits = valor.replace(/\D/g, "")
+        if (digits.length === 0) return ""
+        const ddd = digits.slice(0, 2)
+        const prefix = digits.slice(2, 7)
+        const suffix = digits.slice(7, 11)
+        let result = `(${ddd}`
+        if (prefix) result += `) ${prefix}`
+        if (suffix) result += `-${suffix}`
+        return result
+    }
+
     async function onSubmit(data: SchemaPerfil){
         setError(null);
         setSucesso(false);
@@ -115,12 +140,16 @@ export default function ProfileClient({
         const diff: Partial<SchemaPerfil> = {};
 
         for(const key of Object.keys(dirtyFields) as Array<keyof SchemaPerfil>){
-            if (key === "materias" || key === "niveisEnsino" || key === "voluntario") continue;
+            if (key === "materias" || key === "niveisEnsino" || key === "voluntario" || key === "telefone") continue;
             diff[key] = data[key] as any;
         }
 
         if (data.voluntario !== tutorData?.voluntario) {
             diff.voluntario = data.voluntario;
+        }
+
+        if (data.telefone !== telefone) {
+            diff.telefone = data.telefone;
         }
 
         const materiasDiff = !arraysIguais(
@@ -154,7 +183,7 @@ export default function ProfileClient({
     }
 
     return (
-        <div className="w-full max-w-5xl mx-auto mt-10 px-4">
+        <div className="w-full max-w-5xl mx-auto mt-10 p-4">
  
             <div className="flex flex-col">
                 <h1 className="text-4xl font-semibold text-primary mb-8">
@@ -187,7 +216,7 @@ export default function ProfileClient({
                 <div className="flex flex-col gap-6">
                     <Section titulo="Informações básicas" >
                         <Campo label="Nome" valor={nome} />
-                        <Campo label="Telefone" valor={telefone ?? "Não informado"} />
+                        <Campo label="Telefone" valor={formatarTelefone(telefone) || "Não informado"} />
                     </Section>
  
                     {role === "tutor" && tutorData && (
@@ -195,8 +224,33 @@ export default function ProfileClient({
                             <Section titulo="Sobre a tutoria">
                                 <Campo label="Descrição" valor={tutorData.descricao ?? "Não informado"} />
                                 <Campo label="Modalidade" valor={tutorData.modalidade.toUpperCase()} />
+                                {tutorData.enderecos.length > 0 && (
+                                    <Section titulo="Regiões de atendimento">
+                                        <div className="flex flex-col gap-3">
+                                            {tutorData.enderecos.map((e) => (
+                                                <div key={e.id} className="flex gap-2 text-sm text-foreground">
+                                                    <span>{e.bairro},</span>
+                                                    <span>{e.cidade}</span>
+                                                    <span>— {e.estado}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </Section>
+                                )}
+
+                                {tutorData.modalidade !== "ead" && tutorData.enderecos.length === 0 && (
+                                    <Section titulo="Regiões de atendimento">
+                                        <p className="text-sm text-muted-foreground">Nenhum endereço cadastrado</p>
+                                    </Section>
+                                )}
                                 <Campo label="Atendimento" valor={[tutorData.ensinaPrivado && "Particular", tutorData.ensinaTurma && "Turma"].filter(Boolean).join(" e ")} />
-                                <Campo label="Forma de cobrança" valor={tutorData.voluntario ? "Tutor Voluntário" : tutorData.valorHora ? `R$ ${tutorData.valorHora} por hora` : "A combinar"} />
+                                <Campo label="Forma de cobrança" valor={
+                                    tutorData.voluntario === true
+                                        ? "Tutor Voluntário" 
+                                        : tutorData.valorHora 
+                                            ? `R$ ${tutorData.valorHora} por hora` 
+                                            : "A combinar"
+                                }  />
                             </Section>
                             <Section titulo="Matérias">
                                 <div className="flex flex-wrap gap-2">
@@ -236,7 +290,7 @@ export default function ProfileClient({
                         </div>
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-medium text-foreground">Telefone</label>
-                            <IMaskInput id="telefone" mask="(00) 00000-0000" placeholder="(00) 00000-0000" onAccept={(value) => setValue("telefone", value, {
+                            <IMaskInput id="telefone" unmask={true} mask="(00) 00000-0000" placeholder="(00) 00000-0000" defaultValue={formatarTelefone(telefone)} onAccept={(value) => setValue("telefone", value, {
                                 shouldDirty: true,
                                 shouldValidate: true
                             })} className="field-default max-w-xs" />
@@ -253,76 +307,172 @@ export default function ProfileClient({
                                     })} rows={4} className="field-default resize-none" />
                                     {errors.descricao && <p className="text-red-500 text-sm">{errors.descricao.message}</p>}
                                 </div>
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-foreground">Modalidade</label>
-                                    <select {...register("modalidade")} className="field-default max-w-xs">
-                                        <option value="ead">EAD</option>
-                                        <option value="presencial">Presencial</option>
-                                        <option value="ambos">Ambos</option>
-                                    </select>
-                                </div>
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-foreground">Tipo de atendimento</label>
-                                    <label className="flex items-center gap-2 text-sm text-foreground">
-                                        <input type="checkbox" {...register("ensinaPrivado")} />
-                                        Particular
+                                    <label className="text-sm font-medium text-foreground">
+                                        Como você prefere dar aulas?
                                     </label>
-                                    <label className="flex items-center gap-2 text-sm text-foreground">
-                                        <input type="checkbox" {...register("ensinaTurma")} />
-                                        Turma
-                                    </label>
-                                    {errors.ensinaPrivado && <p className="text-red-500 text-sm">{errors.ensinaPrivado.message}</p>}
+                                    <div className="flex gap-2">
+                                        {(["ead", "presencial", "ambos"] as const).map((op) => (
+                                            <button
+                                                key={op}
+                                                type="button"
+                                                onClick={() => setValue("modalidade", op, { shouldDirty: true })}
+                                                className={`px-4 py-2 rounded-full text-sm border transition-colors capitalize ${
+                                                    modalidade === op
+                                                        ? "bg-primary text-primary-foreground border-primary"
+                                                        : "bg-background text-foreground border-border hover:border-primary"
+                                                }`}
+                                            >
+                                                {op === "ead" ? "EAD" : op}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-foreground">Forma de cobrança</label>
-                                    <label className="flex items-center gap-2 text-sm text-foreground">
-                                        <input type="checkbox" {...register("voluntario", {
-                                            onChange: (e) => {
-                                                if(e.target.checked){
-                                                    setValue("valorHora", undefined, {
-                                                        shouldDirty: true,
-                                                        shouldValidate: true
-                                                    })
-                                                }
-                                            }
-                                        })} />
-                                        Atuo como voluntário
-                                    </label>
-                                    {!voluntario && (
+                                {modalidade !== "ead" && (
+                                    <div className="flex flex-col gap-3 mt-2">
                                         <div className="flex flex-col gap-1">
-                                            <label className="text-sm font-medium text-foreground">
-                                                Valor por hora
-                                            </label>
-                                            <IMaskInput
-                                                mask="R$ num"
-                                                blocks={{
-                                                    num: {
-                                                        mask: Number,
-                                                        scale: 2,
-                                                        thousandsSeparator: ".",
-                                                        padFractionalZeros: true,
-                                                        radix: ",",
-                                                        min: 0,
-                                                        max: 9999,
-                                                    }
-                                                }}
-                                                placeholder="R$ 0,00"
-                                                className="field-default max-w-xs"
-                                                unmask={true}
-                                                onAccept={(value) => setValue("valorHora", value, {
-                                                    shouldDirty: true,
-                                                    shouldValidate: true
-                                                })}
-                                                defaultValue={formatarValorParaInput(tutorData?.valorHora)}
-                                            />
-                                            <span className="text-xs text-muted-foreground">
-                                                Deixe vazio caso prefira combinar o valor depois.
-                                            </span>
+                                            <label className="text-sm font-medium text-foreground">Regiões de atendimento</label>
+                                            <span className="text-xs text-muted-foreground">Adicione os locais onde você atende presencialmente</span>
                                         </div>
+
+                                        {fields.map((field, index) => (
+                                            <div key={field.id} className="relative bg-muted rounded-xl p-4 flex flex-col gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => remove(index)}
+                                                    className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                                                >
+                                                    <FaTrash className="w-3 h-3" />
+                                                </button>
+                                                <div className="grid grid-cols-3 gap-3 pr-8">
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-xs font-medium text-foreground">Cidade</label>
+                                                        <input
+                                                            className="field-default"
+                                                            placeholder="Ex: Rio de Janeiro"
+                                                            {...register(`enderecos.${index}.cidade`)}
+                                                        />
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-xs font-medium text-foreground">Bairro</label>
+                                                        <input
+                                                            className="field-default"
+                                                            placeholder="Ex: Botafogo"
+                                                            {...register(`enderecos.${index}.bairro`)}
+                                                        />
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-xs font-medium text-foreground">Estado</label>
+                                                        <input
+                                                            className="field-default max-w-20"
+                                                            placeholder="Ex: RJ"
+                                                            {...register(`enderecos.${index}.estado`)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => append({ bairro: "", cidade: "", estado: "" })}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-fit"
+                                        >
+                                            <span className="text-base leading-none">+</span>
+                                            Adicionar região
+                                        </button>
+
+                                        {errors.enderecos && (
+                                            <p className="text-red-500 text-sm">{errors.enderecos.message}</p>
+                                        )}
+                                    </div>
+                                )}
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-0.5">
+                                        <label className="text-sm font-medium text-foreground">Tipo de atendimento</label>
+                                        <span className="text-xs text-muted-foreground">Selecione pelo menos um</span>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setValue("ensinaPrivado", !ensinaPrivado, { shouldDirty: true, shouldValidate: true })}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors ${
+                                                ensinaPrivado
+                                                    ? "bg-primary text-primary-foreground border-primary"
+                                                    : "bg-background text-foreground border-border hover:border-primary"
+                                            }`}
+                                        >
+                                            Particular
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setValue("ensinaTurma", !ensinaTurma, { shouldDirty: true, shouldValidate: true })}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors ${
+                                                ensinaTurma
+                                                    ? "bg-primary text-primary-foreground border-primary"
+                                                    : "bg-background text-foreground border-border hover:border-primary"
+                                            }`}
+                                        >
+                                            Turma
+                                        </button>
+                                    </div>
+
+                                    {errors.ensinaPrivado && (
+                                        <p className="text-red-500 text-sm">{errors.ensinaPrivado.message}</p>
                                     )}
-                                    {voluntario && (
-                                        <div className="text-sm text-muted-foreground">
-                                            Este tutor atua de forma voluntária.
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                    <label className="text-sm font-medium text-foreground">Forma de cobrança</label>
+
+                                    <div className="flex items-center justify-between p-4 rounded-xl border border-border">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-sm font-medium text-foreground">Atuo como voluntário</span>
+                                            <span className="text-xs text-muted-foreground">Seu perfil será exibido como gratuito para os alunos</span>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                {...register("voluntario", {
+                                                    onChange: (e) => {
+                                                        if (e.target.checked) {
+                                                            setValue("valorHora", undefined, { shouldDirty: true, shouldValidate: true })
+                                                        }
+                                                    }
+                                                })}
+                                            />
+                                            <div className="w-10 h-6 bg-border rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.75 after:left-0.75 after:bg-white after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:after:translate-x-4" />
+                                        </label>
+                                    </div>
+
+                                    {!voluntario && (
+                                        <div className="flex flex-col gap-2 p-4 rounded-xl bg-muted">
+                                            <label className="text-sm font-medium text-foreground">Valor por hora</label>
+                                            <div className="flex items-center gap-3">
+                                                <IMaskInput
+                                                    mask="R$ num"
+                                                    blocks={{
+                                                        num: {
+                                                            mask: Number,
+                                                            scale: 2,
+                                                            thousandsSeparator: ".",
+                                                            padFractionalZeros: true,
+                                                            radix: ",",
+                                                            min: 0,
+                                                            max: 9999,
+                                                        }
+                                                    }}
+                                                    placeholder="R$ 0,00"
+                                                    className="field-default max-w-xs"
+                                                    unmask={true}
+                                                    onAccept={(value) => setValue("valorHora", value, { shouldDirty: true, shouldValidate: true })}
+                                                    defaultValue={formatarValorParaInput(tutorData?.valorHora)}
+                                                />
+                                                <span className="text-sm text-muted-foreground">por hora</span>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">Deixe vazio para combinar o valor depois</span>
                                         </div>
                                     )}
                                 </div>

@@ -3,13 +3,11 @@
 import { db } from "@/db";
 import { auth } from "@/lib/auth";
 import { user } from "@/lib/db/auth-schema";
-import { materiaTutor, nivelEnsino, nivelEnsinoTutor, tutor } from "@/lib/db/schema";
+import { enderecoAtendimento, materiaTutor, nivelEnsino, nivelEnsinoTutor, tutor } from "@/lib/db/schema";
 import { SchemaPerfil, schemaPerfil } from "@/schemas/perfil";
-import { error } from "console";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { includes, success } from "zod";
 
 export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
     const session = await auth.api.getSession({
@@ -48,11 +46,12 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
         valorHora,
         voluntario,
         materias,
-        niveisEnsino
+        niveisEnsino,
+        enderecos
     } = parsed.data
 
     const atualizacoesUser: Record<string, unknown> = {}
-    if (nome !== undefined) atualizacoesUser.nome = nome
+    if (nome !== undefined) atualizacoesUser.name = nome
     if (telefone !== undefined) atualizacoesUser.telefone = telefone
 
     if (Object.keys(atualizacoesUser).length > 0){
@@ -129,6 +128,45 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
                 await db.insert(nivelEnsinoTutor).values(
                     paraAdicionar.map(nivelEnsinoId => ({ tutorId: id, nivelEnsinoId }))
                 )
+            }
+        }
+
+        if (enderecos !== undefined){
+            const enderecosAtuais = await db
+                .select()
+                .from(enderecoAtendimento)
+                .where(eq(enderecoAtendimento.tutorId, id))
+
+            const idAtuais = enderecosAtuais.map(e => e.id)
+            const idNovos = enderecos.filter(e => e.id !== undefined).map(e => e.id)
+            const paraRemover = idAtuais.filter(id => !idNovos.includes(id))
+
+            if(paraRemover.length > 0){
+                await db.delete(enderecoAtendimento).where(
+                    and(
+                        eq(enderecoAtendimento.tutorId, id),
+                        inArray(enderecoAtendimento.id, paraRemover)
+                    )
+                )
+            }
+            
+            for (const endereco of enderecos) {
+                if (endereco.id) {
+                    await db.update(enderecoAtendimento)
+                        .set({
+                            bairro: endereco.bairro,
+                            cidade: endereco.cidade,
+                            estado: endereco.estado,
+                        })
+                        .where(eq(enderecoAtendimento.id, endereco.id))
+                } else {
+                    await db.insert(enderecoAtendimento).values({
+                        tutorId: id,
+                        bairro: endereco.bairro,
+                        cidade: endereco.cidade,
+                        estado: endereco.estado,
+                    })
+                }
             }
         }
     }

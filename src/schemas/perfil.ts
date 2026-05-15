@@ -11,6 +11,12 @@ export const schemaPerfil = z.object({
     voluntario: z.boolean().optional(),
     materias: z.array(z.number()).optional(),
     niveisEnsino: z.array(z.number()).optional(),
+    enderecos: z.array(z.object({
+        id: z.number().optional(),
+        bairro: z.string().min(1, "Bairro obrigatório"),
+        cidade: z.string().min(1, "Cidade obrigatória"),
+        estado: z.string().min(2, "Estado obrigatório"),
+    })).optional()
 }).superRefine((data, ctx) => {
     if (data.ensinaPrivado !== undefined && data.ensinaTurma !== undefined) {
         if (!data.ensinaPrivado && !data.ensinaTurma) {
@@ -18,6 +24,16 @@ export const schemaPerfil = z.object({
                 code: "custom",
                 message: "Selecione pelo menos um tipo de atendimento",
                 path: ["ensinaPrivado"]
+            })
+        }
+    }
+
+    if (data.modalidade === "ambos" || data.modalidade === "presencial"){
+        if (!data.enderecos) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Preencha todos os campos de endereço",
+                path: ["enderecos"]
             })
         }
     }

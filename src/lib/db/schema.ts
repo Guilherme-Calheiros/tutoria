@@ -137,3 +137,5 @@ export const nivelEnsinoTutorRelations = relations(nivelEnsinoTutor, ({ one }) =
 export const disponibilidadeRelations = relations(disponibilidade, ({ one }) => ({
     tutor: one(tutor, { fields: [disponibilidade.tutorId], references: [tutor.userId] }),
 }))
+
+export type TutorSelect = typeof tutor.$inferSelect
