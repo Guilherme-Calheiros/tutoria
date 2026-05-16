@@ -58,6 +58,7 @@ export default async function ProfilePage() {
             userId={user.id}
             nome={user.name}
             telefone={user.telefone ?? null}
+            image={user.image ?? null}
             role={user.role}
             tutorData={tutorData}
             todasMaterias={todasMaterias}

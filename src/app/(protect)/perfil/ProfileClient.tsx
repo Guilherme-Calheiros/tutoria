@@ -8,7 +8,7 @@ import { schemaPerfil, SchemaPerfil } from "@/schemas/perfil";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { FaPencilAlt, FaTrash } from "react-icons/fa";
+import { FaPencilAlt, FaTrash, FaUser } from "react-icons/fa";
 import { IMaskInput } from "react-imask";
 
 type Materia = { id: number; nome: string }
@@ -26,6 +26,7 @@ type ProfileClientProps = {
     userId: string;
     nome: string;
     telefone: string | null;
+    image: string | null;
     role: string;
     tutorData: tutorData;
     todasMaterias: Materia[];
@@ -35,6 +36,7 @@ type ProfileClientProps = {
 export default function ProfileClient({
     userId,
     nome,
+    image,
     telefone,
     role,
     tutorData,
@@ -50,6 +52,7 @@ export default function ProfileClient({
         defaultValues: {
             nome,
             telefone: telefone ?? undefined,
+            image: image ?? undefined,
             descricao: tutorData?.descricao ?? undefined,
             modalidade: tutorData?.modalidade ?? "ead",
             ensinaTurma: tutorData?.ensinaTurma ?? false,
@@ -79,6 +82,13 @@ export default function ProfileClient({
     const voluntario = watch("voluntario");
     const modalidade = watch("modalidade");
 
+    const [fotoAtual, setFotoAtual] = useState<string | null>(image ?? null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [localPreview, setLocalPreview] = useState<string | null>(null)
+    const [uploadando, setUploadando] = useState(false)
+
+    const displayUrl = localPreview ?? fotoAtual
+
     const materiasOriginais = tutorData?.materias ?? [];
     const niveisEnsinoOriginais = tutorData?.niveisEnsino ?? [];
 
@@ -103,6 +113,10 @@ export default function ProfileClient({
     function handleCancelar(){
         reset();
         setError(null);
+        setFotoAtual(image ?? null);
+        setSelectedFile(null)
+        if (localPreview) URL.revokeObjectURL(localPreview)
+        setLocalPreview(null)
         setEditando(false);
     }
 
@@ -133,6 +147,17 @@ export default function ProfileClient({
         return result
     }
 
+    function handleFotoSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (localPreview) URL.revokeObjectURL(localPreview)
+        setSelectedFile(file)
+        setLocalPreview(URL.createObjectURL(file))
+        setError(null)
+        e.target.value = ""
+    }
+
     async function onSubmit(data: SchemaPerfil){
         setError(null);
         setSucesso(false);
@@ -144,7 +169,7 @@ export default function ProfileClient({
             diff[key] = data[key] as any;
         }
 
-        if (data.voluntario !== tutorData?.voluntario) {
+        if (role === "tutor" && data.voluntario !== tutorData?.voluntario) {
             diff.voluntario = data.voluntario;
         }
 
@@ -162,6 +187,23 @@ export default function ProfileClient({
             niveisEnsinoOriginais
         );
 
+        if (selectedFile) {
+            setUploadando(true)
+            const formData = new FormData()
+            formData.set("file", selectedFile)
+            const res = await fetch("/api/upload", { method: "POST", body: formData })
+            setUploadando(false)
+            let data
+            try {
+                data = await res.json()
+            } catch {
+                setError("Erro inesperado ao processar upload")
+                return
+            }
+            if (!res.ok || data.error) { setError(data.error ?? "Erro ao enviar imagem"); return }
+            diff.image = data.url
+            setFotoAtual(data.url)
+        }
         
         if(materiasDiff) diff.materias = materiasSelected;
         if(niveisEnsinoDiff) diff.niveisEnsino = niveisEnsinoSelected;
@@ -178,6 +220,9 @@ export default function ProfileClient({
             return
         }
 
+        setSelectedFile(null)
+        if (localPreview) URL.revokeObjectURL(localPreview)
+        setLocalPreview(null)
         setSucesso(true);
         setEditando(false);
     }
@@ -190,9 +235,18 @@ export default function ProfileClient({
                     Meu Perfil
                 </h1>
                 <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-foreground">{nome}</h2>
-                        <p className="text-sm text-muted-foreground capitalize">{role}</p>
+                    <div className="flex flex-row gap-4 items-center">
+                        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-secondary flex items-center justify-center shrink-0">
+                            {fotoAtual ? (
+                                <img src={fotoAtual} alt="Foto de perfil" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-3xl text-primary"><FaUser /></span>
+                            )}
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-foreground">{nome}</h2>
+                            <p className="text-sm text-muted-foreground capitalize">{role}</p>
+                        </div>
                     </div>
                     {!editando && (
                         <button
@@ -282,6 +336,33 @@ export default function ProfileClient({
             ) : (
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
  
+                    <Section titulo="Foto do perfil">
+                        <div className="flex items-center gap-6">
+                            <div className="w-24 h-24 rounded-full overflow-hidden bg-secondary flex items-center justify-center shrink-0">
+                                {displayUrl ? (
+                                    <img src={displayUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-3xl text-primary"><FaUser /></span>
+                                )}
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label
+                                    htmlFor="foto"
+                                    className={`cursor-pointer text-sm font-medium text-primary hover:underline w-fit ${uploadando ? "opacity-50 pointer-events-none" : ""}`}
+                                >
+                                    {uploadando ? "Enviando..." : "Alterar foto"}
+                                </label>
+                                <input
+                                    id="foto"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={handleFotoSelecionada}
+                                />
+                                <span className="text-xs text-muted-foreground">JPG, PNG ou WebP — máx. 2MB</span>
+                            </div>
+                        </div>
+                    </Section>
                     <Section titulo="Informações básicas">
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-medium text-foreground">Nome completo</label>

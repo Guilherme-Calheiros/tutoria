@@ -3,11 +3,12 @@
 import { db } from "@/db";
 import { auth } from "@/lib/auth";
 import { user } from "@/lib/db/auth-schema";
-import { enderecoAtendimento, materiaTutor, nivelEnsino, nivelEnsinoTutor, tutor } from "@/lib/db/schema";
+import { enderecoAtendimento, materiaTutor, nivelEnsinoTutor, tutor } from "@/lib/db/schema";
 import { SchemaPerfil, schemaPerfil } from "@/schemas/perfil";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { deleteArquivo } from "@/lib/r2/r2";
 
 export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
     const session = await auth.api.getSession({
@@ -39,6 +40,7 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
     const {
         nome,
         telefone,
+        image,
         descricao,
         ensinaPrivado,
         ensinaTurma,
@@ -53,6 +55,14 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
     const atualizacoesUser: Record<string, unknown> = {}
     if (nome !== undefined) atualizacoesUser.name = nome
     if (telefone !== undefined) atualizacoesUser.telefone = telefone
+    if (image !== undefined) {
+        const [usuarioAtual] = await db.select({ image: user.image }).from(user).where(eq(user.id, id))
+        if (usuarioAtual?.image && usuarioAtual.image.startsWith(process.env.R2_PUBLIC_URL!)) {
+            const oldKey = usuarioAtual.image.replace(`${process.env.R2_PUBLIC_URL}/`, "")
+            await deleteArquivo(oldKey)
+        }
+        atualizacoesUser.image = image
+    }
 
     if (Object.keys(atualizacoesUser).length > 0){
         await db.update(user).set(atualizacoesUser).where(eq(user.id, id));
