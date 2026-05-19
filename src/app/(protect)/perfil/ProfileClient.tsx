@@ -6,10 +6,12 @@ import Section from "@/app/components/Section";
 import { enderecoAtendimento, TutorSelect } from "@/lib/db/schema";
 import { schemaPerfil, SchemaPerfil } from "@/schemas/perfil";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { FaPencilAlt, FaTrash, FaUser } from "react-icons/fa";
 import { IMaskInput } from "react-imask";
+import { deleteUser } from "@/lib/auth-client";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 
 type Materia = { id: number; nome: string }
 type NivelEnsino = { id: number; nome: string }
@@ -46,6 +48,22 @@ export default function ProfileClient({
     const [editando, setEditando] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [sucesso, setSucesso] = useState(false);
+    const [confirmacaoTexto, setConfirmacaoTexto] = useState("");
+    const [excluindo, setExcluindo] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [emailEnviado, setEmailEnviado] = useState(false);
+
+    useEffect(() => {
+        if (!sucesso) return;
+        const timer = setTimeout(() => setSucesso(false), 5000);
+        return () => clearTimeout(timer);
+    }, [sucesso])
+
+    useEffect(() => {
+        if (!emailEnviado) return;
+        const timer = setTimeout(() => setEmailEnviado(false), 8000);
+        return () => clearTimeout(timer);
+    }, [emailEnviado])
 
     const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting, dirtyFields } } = useForm<SchemaPerfil>({
         resolver: zodResolver(schemaPerfil),
@@ -118,6 +136,24 @@ export default function ProfileClient({
         if (localPreview) URL.revokeObjectURL(localPreview)
         setLocalPreview(null)
         setEditando(false);
+    }
+
+    async function handleExcluirConta(){
+        if (confirmacaoTexto !== "CONFIRMAR") return;
+        setExcluindo(true);
+        setError(null);
+        const { error: deleteError } = await deleteUser({
+            callbackURL: "/"
+        });
+        if (deleteError) {
+            setError(deleteError.message || "Erro ao solicitar exclusão");
+            setExcluindo(false);
+            return;
+        }
+        setEmailEnviado(true);
+        setExcluindo(false);
+        setModalOpen(false);
+        setConfirmacaoTexto("");
     }
 
     function arraysIguais(a: number[], b: number[]){
@@ -265,7 +301,13 @@ export default function ProfileClient({
                     Perfil atualizado com sucesso!
                 </p>
             )}
- 
+
+            {emailEnviado && (
+                <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 mb-6">
+                    Enviamos um link de confirmação para seu e-mail. Clique no link para concluir a exclusão da sua conta.
+                </p>
+            )}
+
             {!editando ? (
                 <div className="flex flex-col gap-6">
                     <Section titulo="Informações básicas" >
@@ -360,6 +402,7 @@ export default function ProfileClient({
                                     onChange={handleFotoSelecionada}
                                 />
                                 <span className="text-xs text-muted-foreground">JPG, PNG ou WebP — máx. 2MB</span>
+                                {errors.image && <p className="text-red-500 text-sm">{errors.image.message}</p>}
                             </div>
                         </div>
                     </Section>
@@ -601,12 +644,6 @@ export default function ProfileClient({
                         </>
                     )}
  
-                    {error && (
-                        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                            {error}
-                        </p>
-                    )}
- 
                     <div className="flex gap-3">
                         <button
                             type="submit"
@@ -623,9 +660,78 @@ export default function ProfileClient({
                             Cancelar
                         </button>
                     </div>
- 
+
                 </form>
             )}
+
+            {error && (
+                <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+                    {error}
+                </p>
+            )}
+
+            <hr className="my-8 border-border" />
+            <div className="flex flex-col gap-4 p-6 rounded-2xl border border-red-200 bg-red-50/50">
+                <h2 className="text-sm font-semibold text-red-600 tracking-wide">Excluir conta</h2>
+                <p className="text-sm text-red-600/80">
+                    Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
+                </p>
+
+                <AlertDialog.Root open={modalOpen} onOpenChange={setModalOpen}>
+                    <AlertDialog.Trigger asChild>
+                        <button
+                            type="button"
+                            className="w-fit bg-red-600 text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-red-700 transition-colors"
+                        >
+                            Excluir conta
+                        </button>
+                    </AlertDialog.Trigger>
+
+                    <AlertDialog.Portal>
+                        <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+
+                        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-background p-6 shadow-lg border-border border">
+                            <AlertDialog.Title className="text-lg font-semibold text-foreground">
+                                Excluir conta
+                            </AlertDialog.Title>
+
+                            <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
+                                Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
+                            </AlertDialog.Description>
+
+                            <div className="mt-4 flex flex-col gap-1">
+                                <label className="text-sm font-medium text-red-600">
+                                    Digite <strong>CONFIRMAR</strong> para prosseguir
+                                </label>
+                                <input
+                                    type="text"
+                                    value={confirmacaoTexto}
+                                    onChange={(e) => setConfirmacaoTexto(e.target.value)}
+                                    placeholder="CONFIRMAR"
+                                    className="field-default"
+                                />
+                            </div>
+
+                            <div className="mt-6 flex gap-2 justify-end">
+                                <AlertDialog.Cancel
+                                    onClick={() => setConfirmacaoTexto("")}
+                                    className="border border-border rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                                >
+                                    Cancelar
+                                </AlertDialog.Cancel>
+                                <button
+                                    type="button"
+                                    disabled={confirmacaoTexto !== "CONFIRMAR" || excluindo}
+                                    onClick={handleExcluirConta}
+                                    className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                                >
+                                    {excluindo ? "Excluindo..." : "Sim, excluir permanentemente"}
+                                </button>
+                            </div>
+                        </AlertDialog.Content>
+                    </AlertDialog.Portal>
+                </AlertDialog.Root>
+            </div>
         </div>
     )
 }
