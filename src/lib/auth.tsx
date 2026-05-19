@@ -5,6 +5,8 @@ import * as schema from "@/lib/db/schema";
 import * as authSchema from "@/lib/db/auth-schema";
 import { Resend } from "resend";
 import VerificarEmail from "@/app/components/emails/VerificarEmail";
+import DeletarContaEmail from "@/app/components/emails/DeletarContaEmail";
+import { deleteArquivo } from "./r2/r2";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -23,6 +25,14 @@ export const auth = betterAuth({
                         })
                     }
                 }
+            },
+            delete: {
+                after: async (user) => {
+                    if (user.image && user.image.startsWith(process.env.R2_PUBLIC_URL!)) {
+                        const key = user.image.replace(`${process.env.R2_PUBLIC_URL}/`, "")
+                        await deleteArquivo(key)
+                    }
+                }
             }
         }
     },
@@ -33,6 +43,12 @@ export const auth = betterAuth({
     },
 
     user: {
+        deleteUser: {
+            enabled: true,
+            sendDeleteAccountVerification: async ({ user, url }) => {
+                await sendDeleteAccountEmail(user.email, url, user.name);
+            },
+        },
         additionalFields: {
             telefone: {
                 type: "string",
@@ -73,5 +89,16 @@ async function sendVerificationEmail(email: string, url: string, name: string) {
         to: email,
         subject: 'Verifique seu endereço de e-mail',
         react: <VerificarEmail url={url} name={name} />,
+    })
+}
+
+async function sendDeleteAccountEmail(email: string, url: string, name: string) {
+    const resend = new Resend(process.env.RESEND_API_KEY!);
+
+    await resend.emails.send({
+        from: `Tutoria <${process.env.EMAIL_FROM}>`,
+        to: email,
+        subject: 'Confirme a exclusão da sua conta',
+        react: <DeletarContaEmail url={url} name={name} />,
     })
 }

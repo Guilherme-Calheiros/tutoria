@@ -55,7 +55,7 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
     const atualizacoesUser: Record<string, unknown> = {}
     if (nome !== undefined) atualizacoesUser.name = nome
     if (telefone !== undefined) atualizacoesUser.telefone = telefone
-    if (image !== undefined) {
+    if (image) {
         const [usuarioAtual] = await db.select({ image: user.image }).from(user).where(eq(user.id, id))
         if (usuarioAtual?.image && usuarioAtual.image.startsWith(process.env.R2_PUBLIC_URL!)) {
             const oldKey = usuarioAtual.image.replace(`${process.env.R2_PUBLIC_URL}/`, "")
