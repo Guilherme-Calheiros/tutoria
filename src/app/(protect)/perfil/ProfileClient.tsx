@@ -12,6 +12,7 @@ import { FaPencilAlt, FaTrash, FaUser } from "react-icons/fa";
 import { IMaskInput } from "react-imask";
 import { deleteUser } from "@/lib/auth-client";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import AgendaClient from "./AgendaClient";
 
 type Materia = { id: number; nome: string }
 type NivelEnsino = { id: number; nome: string }
@@ -22,6 +23,7 @@ type tutorData = (Omit<TutorSelect, "userId"> & {
     materias: number[];
     niveisEnsino: number[];
     enderecos: EnderecoSelect[];
+    disponibilidades: { diaDaSemana: number; startTime: string; endTime: string }[]
 }) | null;
 
 type ProfileClientProps = {
@@ -264,13 +266,13 @@ export default function ProfileClient({
     }
 
     return (
-        <div className="w-full max-w-5xl mx-auto mt-10 p-4">
+        <div className="w-full max-w-5xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4">
  
             <div className="flex flex-col">
                 <h1 className="text-4xl font-semibold text-primary mb-8">
                     Meu Perfil
                 </h1>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                     <div className="flex flex-row gap-4 items-center">
                         <div className="relative w-20 h-20 rounded-full overflow-hidden bg-secondary flex items-center justify-center shrink-0">
                             {fotoAtual ? (
@@ -372,8 +374,75 @@ export default function ProfileClient({
                                     {tutorData.niveisEnsino.length === 0 && <p className="text-sm text-muted-foreground">Nenhum nível cadastrado</p>}
                                 </div>
                             </Section>
+
+                            <Section titulo="Agenda de disponibilidade">
+                                <AgendaClient blocosSalvos={tutorData?.disponibilidades ?? []} />
+                            </Section>
                         </>
                     )}
+
+                    <hr className="my-8 border-border" />
+                    <div className="flex flex-col gap-4 p-6 rounded-2xl border border-red-200 bg-red-50/50">
+                        <h2 className="text-sm font-semibold text-red-600 tracking-wide">Excluir conta</h2>
+                        <p className="text-sm text-red-600/80">
+                            Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
+                        </p>
+
+                        <AlertDialog.Root open={modalOpen} onOpenChange={setModalOpen}>
+                            <AlertDialog.Trigger asChild>
+                                <button
+                                    type="button"
+                                    className="w-fit bg-red-600 text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-red-700 transition-colors"
+                                >
+                                    Excluir conta
+                                </button>
+                            </AlertDialog.Trigger>
+
+                            <AlertDialog.Portal>
+                                <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+
+                                <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-background p-4 sm:p-6 shadow-lg border-border border">
+                                    <AlertDialog.Title className="text-lg font-semibold text-foreground">
+                                        Excluir conta
+                                    </AlertDialog.Title>
+
+                                    <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
+                                        Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
+                                    </AlertDialog.Description>
+
+                                    <div className="mt-4 flex flex-col gap-1">
+                                        <label className="text-sm font-medium text-red-600">
+                                            Digite <strong>CONFIRMAR</strong> para prosseguir
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={confirmacaoTexto}
+                                            onChange={(e) => setConfirmacaoTexto(e.target.value)}
+                                            placeholder="CONFIRMAR"
+                                            className="field-default"
+                                        />
+                                    </div>
+
+                                    <div className="mt-6 flex gap-2 justify-end">
+                                        <AlertDialog.Cancel
+                                            onClick={() => setConfirmacaoTexto("")}
+                                            className="border border-border rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                                        >
+                                            Cancelar
+                                        </AlertDialog.Cancel>
+                                        <button
+                                            type="button"
+                                            disabled={confirmacaoTexto !== "CONFIRMAR" || excluindo}
+                                            onClick={handleExcluirConta}
+                                            className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                                        >
+                                            {excluindo ? "Excluindo..." : "Sim, excluir permanentemente"}
+                                        </button>
+                                    </div>
+                                </AlertDialog.Content>
+                            </AlertDialog.Portal>
+                        </AlertDialog.Root>
+                    </div>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
@@ -435,7 +504,7 @@ export default function ProfileClient({
                                     <label className="text-sm font-medium text-foreground">
                                         Como você prefere dar aulas?
                                     </label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         {(["ead", "presencial", "ambos"] as const).map((op) => (
                                             <button
                                                 key={op}
@@ -468,7 +537,7 @@ export default function ProfileClient({
                                                 >
                                                     <FaTrash className="w-3 h-3" />
                                                 </button>
-                                                <div className="grid grid-cols-3 gap-3 pr-8">
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pr-8">
                                                     <div className="flex flex-col gap-1">
                                                         <label className="text-xs font-medium text-foreground">Cidade</label>
                                                         <input
@@ -517,7 +586,7 @@ export default function ProfileClient({
                                         <span className="text-xs text-muted-foreground">Selecione pelo menos um</span>
                                     </div>
 
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         <button
                                             type="button"
                                             onClick={() => setValue("ensinaPrivado", !ensinaPrivado, { shouldDirty: true, shouldValidate: true })}
@@ -644,7 +713,7 @@ export default function ProfileClient({
                         </>
                     )}
  
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         <button
                             type="submit"
                             disabled={isSubmitting}
@@ -669,69 +738,6 @@ export default function ProfileClient({
                     {error}
                 </p>
             )}
-
-            <hr className="my-8 border-border" />
-            <div className="flex flex-col gap-4 p-6 rounded-2xl border border-red-200 bg-red-50/50">
-                <h2 className="text-sm font-semibold text-red-600 tracking-wide">Excluir conta</h2>
-                <p className="text-sm text-red-600/80">
-                    Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
-                </p>
-
-                <AlertDialog.Root open={modalOpen} onOpenChange={setModalOpen}>
-                    <AlertDialog.Trigger asChild>
-                        <button
-                            type="button"
-                            className="w-fit bg-red-600 text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-red-700 transition-colors"
-                        >
-                            Excluir conta
-                        </button>
-                    </AlertDialog.Trigger>
-
-                    <AlertDialog.Portal>
-                        <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-
-                        <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-background p-6 shadow-lg border-border border">
-                            <AlertDialog.Title className="text-lg font-semibold text-foreground">
-                                Excluir conta
-                            </AlertDialog.Title>
-
-                            <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
-                                Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
-                            </AlertDialog.Description>
-
-                            <div className="mt-4 flex flex-col gap-1">
-                                <label className="text-sm font-medium text-red-600">
-                                    Digite <strong>CONFIRMAR</strong> para prosseguir
-                                </label>
-                                <input
-                                    type="text"
-                                    value={confirmacaoTexto}
-                                    onChange={(e) => setConfirmacaoTexto(e.target.value)}
-                                    placeholder="CONFIRMAR"
-                                    className="field-default"
-                                />
-                            </div>
-
-                            <div className="mt-6 flex gap-2 justify-end">
-                                <AlertDialog.Cancel
-                                    onClick={() => setConfirmacaoTexto("")}
-                                    className="border border-border rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                                >
-                                    Cancelar
-                                </AlertDialog.Cancel>
-                                <button
-                                    type="button"
-                                    disabled={confirmacaoTexto !== "CONFIRMAR" || excluindo}
-                                    onClick={handleExcluirConta}
-                                    className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                                >
-                                    {excluindo ? "Excluindo..." : "Sim, excluir permanentemente"}
-                                </button>
-                            </div>
-                        </AlertDialog.Content>
-                    </AlertDialog.Portal>
-                </AlertDialog.Root>
-            </div>
         </div>
     )
 }
