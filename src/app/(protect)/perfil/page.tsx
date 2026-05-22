@@ -34,6 +34,7 @@ export default async function ProfilePage() {
                     }
                 },
                 enderecos: true,
+                disponibilidades: true
             }
         });
 
@@ -46,7 +47,12 @@ export default async function ProfilePage() {
             voluntario: tutorResult.voluntario,
             enderecos: tutorResult.enderecos,
             materias: tutorResult.materias.map(tm => tm.materiaId),
-            niveisEnsino: tutorResult.niveisEnsino.map(tn => tn.nivelEnsinoId)
+            niveisEnsino: tutorResult.niveisEnsino.map(tn => tn.nivelEnsinoId),
+            disponibilidades: tutorResult.disponibilidades.map(d => ({
+                diaDaSemana: d.diaDaSemana,
+                startTime: d.startTime,
+                endTime: d.endTime,
+            })),
         } : null
     }
 
