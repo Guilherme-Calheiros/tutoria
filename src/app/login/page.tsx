@@ -35,7 +35,7 @@ export default function LoginPage() {
             return
         }
 
-        router.push(`/inicio`)
+        router.push(`/`)
     };
 
     const handleSetError = (message: string) => {
@@ -89,7 +89,7 @@ export default function LoginPage() {
 
                     <button
                         type="button"
-                        onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/inicio" })}
+                        onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/" })}
                         className="flex items-center justify-center gap-2 border border-border rounded-lg px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                     >
                         <FaGoogle />

@@ -49,7 +49,7 @@ export default function NavBar() {
 
     return (
         <div className="w-full border-b border-border p-4 flex items-center justify-between">
-            <Link href={session ? "/inicio" : "/"} className="text-3xl font-semibold tracking-tight text-primary">
+            <Link href="/" className="text-3xl font-semibold tracking-tight text-primary">
                 tutoria
             </Link>
 

@@ -17,7 +17,7 @@ export default function VerificarEmailContent() {
     setLoading(true)
     await authClient.sendVerificationEmail({
       email,
-      callbackURL: "/inicio"
+      callbackURL: "/"
     })
     setEnviado(true)
     setLoading(false)

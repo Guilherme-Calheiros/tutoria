@@ -17,10 +17,6 @@ export async function GET() {
 
     const user = session.user
 
-    if (user.role === "tutor") {
-        return NextResponse.redirect(new URL("/inicio", process.env.NEXT_PUBLIC_APP_URL))
-    }
-
     await db.update(authSchema.user)
         .set({ role: "tutor" })
         .where(eq(authSchema.user.id, user.id))
@@ -30,5 +26,5 @@ export async function GET() {
         modalidade: "ead",
     })
 
-    return NextResponse.redirect(new URL("/inicio", process.env.NEXT_PUBLIC_APP_URL))
+    return NextResponse.redirect(new URL("/", process.env.NEXT_PUBLIC_APP_URL))
 }
