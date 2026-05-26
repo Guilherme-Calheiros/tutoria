@@ -482,11 +482,14 @@ export default function ProfileClient({
                             {errors.nome && <p className="text-red-500 text-sm">{errors.nome.message}</p>}
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-medium text-foreground">Telefone</label>
+                            <label className="text-sm font-medium text-foreground">
+                                Celular {role === "tutor" ? <span className="text-xs text-muted-foreground">(obrigatório)</span> : <span className="text-xs text-muted-foreground">(opcional)</span>}
+                            </label>
                             <IMaskInput id="telefone" unmask={true} mask="(00) 00000-0000" placeholder="(00) 00000-0000" defaultValue={formatarTelefone(telefone)} onAccept={(value) => setValue("telefone", value, {
                                 shouldDirty: true,
                                 shouldValidate: true
                             })} className="field-default max-w-xs" />
+                            {errors.telefone && <p className="text-red-500 text-sm">{errors.telefone.message}</p>}
                         </div>
                     </Section>
  

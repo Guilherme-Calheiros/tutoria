@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FaGoogle } from "react-icons/fa";
 import { authClient } from "@/lib/auth-client";
 import { FormCadastroSchema, schemaCadastro } from "@/schemas/cadastro";
-import { IMaskInput } from "react-imask";
 import { useState } from "react";
 import Link from "next/link";
 import PasswordInput from "../components/PasswordInput";
@@ -33,13 +32,13 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
     const { title, description, role } = configCadastro[tipo];
-    const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormCadastroSchema>({
+    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormCadastroSchema>({
         resolver: zodResolver(schemaCadastro)
     });
 
     const handleFormSubmit = async (data: FormCadastroSchema) => {
         setError(null)
-        const { nome, email, telefone, senha } = data
+        const { nome, email, senha } = data
 
         const { error: authError } = await authClient.signUp.email({
             name: nome,
@@ -47,7 +46,6 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
             password: senha,
         }, {
             body: {
-                telefone: telefone || null,
                 role
             }
         })
@@ -80,13 +78,6 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
                         </label>
                         <input id="nome" type="text" placeholder="Seu nome completo" {...register('nome')} className="field-default" />
                         {errors.nome && <p className="text-red-500 text-sm mt-1">{errors.nome.message}</p>}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="telefone" className="text-sm font-medium text-foreground">
-                            Telefone <span className="text-xs text-muted-foreground">(opcional)</span>
-                        </label>
-                        <IMaskInput id="telefone" mask="(00) 00000-0000" placeholder="(00) 00000-0000" onAccept={(value) => {setValue("telefone", value)}} className="field-default" />
-                        {errors.telefone && <p className="text-red-500 text-sm mt-1">{errors.telefone.message}</p>}
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="email" className="text-sm font-medium text-foreground">
