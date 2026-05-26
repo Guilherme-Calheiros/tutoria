@@ -15,6 +15,13 @@
       "when": 1778519672802,
       "tag": "0001_soft_iron_fist",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779739726045,
+      "tag": "0002_daffy_kat_farrell",
+      "breakpoints": true
     }
   ]
 }
