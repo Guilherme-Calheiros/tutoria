@@ -48,4 +48,22 @@ export const schemaPerfil = z.object({
     }
 })
 
+export const schemaPerfilTutor = schemaPerfil.superRefine((data, ctx) => {
+    if (!data.descricao || data.descricao.length < 10) {
+        ctx.addIssue({ code: "custom", message: "Descrição deve conter pelo menos 10 caracteres", path: ["descricao"] })
+    }
+    if (!data.telefone || data.telefone.length < 10) {
+        ctx.addIssue({ code: "custom", message: "Celular é obrigatório", path: ["telefone"] })
+    }
+    if (!data.materias?.length) {
+        ctx.addIssue({ code: "custom", message: "Selecione pelo menos uma matéria", path: ["materias"] })
+    }
+    if (!data.niveisEnsino?.length) {
+        ctx.addIssue({ code: "custom", message: "Selecione pelo menos um nível de ensino", path: ["niveisEnsino"] })
+    }
+    if ((data.modalidade === "presencial" || data.modalidade === "ambos") && (!data.enderecos || data.enderecos.length === 0)) {
+        ctx.addIssue({ code: "custom", message: "Adicione pelo menos um endereço de atendimento", path: ["enderecos"] })
+    }
+})
+
 export type SchemaPerfil = z.infer<typeof schemaPerfil>

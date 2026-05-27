@@ -4,15 +4,17 @@ import { salvarPerfil } from "@/action/salvarPerfil";
 import Campo from "@/app/components/CampoLabel";
 import Section from "@/app/components/Section";
 import { enderecoAtendimento, TutorSelect } from "@/lib/db/schema";
-import { schemaPerfil, SchemaPerfil } from "@/schemas/perfil";
+import { schemaPerfil, schemaPerfilTutor, SchemaPerfil } from "@/schemas/perfil";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { FaPencilAlt, FaTrash, FaUser } from "react-icons/fa";
+import { FaPencilAlt, FaTrash } from "react-icons/fa";
 import { IMaskInput } from "react-imask";
-import { deleteUser } from "@/lib/auth-client";
-import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import AgendaClient from "./AgendaClient";
+import TagSelector from "@/app/components/TagSelector";
+import PhotoUpload from "@/app/components/PhotoUpload";
+import DeleteAccountSection from "@/app/components/DeleteAccountSection";
+import UserAvatar from "@/app/components/UserAvatar";
 
 type Materia = { id: number; nome: string }
 type NivelEnsino = { id: number; nome: string }
@@ -50,9 +52,6 @@ export default function ProfileClient({
     const [editando, setEditando] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [sucesso, setSucesso] = useState(false);
-    const [confirmacaoTexto, setConfirmacaoTexto] = useState("");
-    const [excluindo, setExcluindo] = useState(false);
-    const [modalOpen, setModalOpen] = useState(false);
     const [emailEnviado, setEmailEnviado] = useState(false);
 
     useEffect(() => {
@@ -68,7 +67,7 @@ export default function ProfileClient({
     }, [emailEnviado])
 
     const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting, dirtyFields } } = useForm<SchemaPerfil>({
-        resolver: zodResolver(schemaPerfil),
+        resolver: zodResolver(role === "tutor" ? schemaPerfilTutor : schemaPerfil),
         defaultValues: {
             nome,
             telefone: telefone ?? undefined,
@@ -138,24 +137,6 @@ export default function ProfileClient({
         if (localPreview) URL.revokeObjectURL(localPreview)
         setLocalPreview(null)
         setEditando(false);
-    }
-
-    async function handleExcluirConta(){
-        if (confirmacaoTexto !== "CONFIRMAR") return;
-        setExcluindo(true);
-        setError(null);
-        const { error: deleteError } = await deleteUser({
-            callbackURL: "/"
-        });
-        if (deleteError) {
-            setError(deleteError.message || "Erro ao solicitar exclusão");
-            setExcluindo(false);
-            return;
-        }
-        setEmailEnviado(true);
-        setExcluindo(false);
-        setModalOpen(false);
-        setConfirmacaoTexto("");
     }
 
     function arraysIguais(a: number[], b: number[]){
@@ -263,6 +244,7 @@ export default function ProfileClient({
         setLocalPreview(null)
         setSucesso(true);
         setEditando(false);
+        window.dispatchEvent(new CustomEvent("refreshNotificacoes"))
     }
 
     return (
@@ -274,13 +256,7 @@ export default function ProfileClient({
                 </h1>
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                     <div className="flex flex-row gap-4 items-center">
-                        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-secondary flex items-center justify-center shrink-0">
-                            {fotoAtual ? (
-                                <img src={fotoAtual} alt="Foto de perfil" className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-3xl text-primary"><FaUser /></span>
-                            )}
-                        </div>
+                        <UserAvatar name={nome} src={fotoAtual} size="lg" />
                         <div>
                             <h2 className="text-2xl font-bold text-foreground">{nome}</h2>
                             <p className="text-sm text-muted-foreground capitalize">{role}</p>
@@ -310,11 +286,26 @@ export default function ProfileClient({
                 </p>
             )}
 
+            {role === "tutor" && tutorData && !tutorData.perfilCompleto && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
+                    <p className="text-sm font-medium text-amber-800 mb-1">
+                        Seu perfil está incompleto
+                    </p>
+                    <ul className="text-sm text-amber-700 space-y-0.5 list-disc list-inside">
+                        {!telefone && <li>Adicione seu celular</li>}
+                        {!tutorData.descricao && <li>Adicione uma descrição</li>}
+                        {!tutorData.materias?.length && <li>Selecione as matérias</li>}
+                        {!tutorData.niveisEnsino?.length && <li>Selecione os níveis de ensino</li>}
+                        {tutorData.modalidade !== "ead" && !tutorData.enderecos?.length && <li>Adicione os endereços de atendimento</li>}
+                    </ul>
+                </div>
+            )}
+
             {!editando ? (
                 <div className="flex flex-col gap-6">
                     <Section titulo="Informações básicas" >
                         <Campo label="Nome" valor={nome} />
-                        <Campo label="Telefone" valor={formatarTelefone(telefone) || "Não informado"} />
+                        <Campo label="Celular" valor={formatarTelefone(telefone) || "Não informado"} />
                     </Section>
  
                     {role === "tutor" && tutorData && (
@@ -381,99 +372,22 @@ export default function ProfileClient({
                         </>
                     )}
 
-                    <hr className="my-8 border-border" />
-                    <div className="flex flex-col gap-4 p-6 rounded-2xl border border-red-200 bg-red-50/50">
-                        <h2 className="text-sm font-semibold text-red-600 tracking-wide">Excluir conta</h2>
-                        <p className="text-sm text-red-600/80">
-                            Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
-                        </p>
-
-                        <AlertDialog.Root open={modalOpen} onOpenChange={setModalOpen}>
-                            <AlertDialog.Trigger asChild>
-                                <button
-                                    type="button"
-                                    className="w-fit bg-red-600 text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-red-700 transition-colors"
-                                >
-                                    Excluir conta
-                                </button>
-                            </AlertDialog.Trigger>
-
-                            <AlertDialog.Portal>
-                                <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-
-                                <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-background p-4 sm:p-6 shadow-lg border-border border">
-                                    <AlertDialog.Title className="text-lg font-semibold text-foreground">
-                                        Excluir conta
-                                    </AlertDialog.Title>
-
-                                    <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
-                                        Sua conta e todos os dados associados serão excluídos permanentemente. Esta ação não pode ser desfeita.
-                                    </AlertDialog.Description>
-
-                                    <div className="mt-4 flex flex-col gap-1">
-                                        <label className="text-sm font-medium text-red-600">
-                                            Digite <strong>CONFIRMAR</strong> para prosseguir
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={confirmacaoTexto}
-                                            onChange={(e) => setConfirmacaoTexto(e.target.value)}
-                                            placeholder="CONFIRMAR"
-                                            className="field-default"
-                                        />
-                                    </div>
-
-                                    <div className="mt-6 flex gap-2 justify-end">
-                                        <AlertDialog.Cancel
-                                            onClick={() => setConfirmacaoTexto("")}
-                                            className="border border-border rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                                        >
-                                            Cancelar
-                                        </AlertDialog.Cancel>
-                                        <button
-                                            type="button"
-                                            disabled={confirmacaoTexto !== "CONFIRMAR" || excluindo}
-                                            onClick={handleExcluirConta}
-                                            className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                                        >
-                                            {excluindo ? "Excluindo..." : "Sim, excluir permanentemente"}
-                                        </button>
-                                    </div>
-                                </AlertDialog.Content>
-                            </AlertDialog.Portal>
-                        </AlertDialog.Root>
-                    </div>
+                    <DeleteAccountSection
+                        onError={(msg) => setError(msg)}
+                        onEmailSent={() => setEmailEnviado(true)}
+                    />
                 </div>
             ) : (
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
  
                     <Section titulo="Foto do perfil">
-                        <div className="flex items-center gap-6">
-                            <div className="w-24 h-24 rounded-full overflow-hidden bg-secondary flex items-center justify-center shrink-0">
-                                {displayUrl ? (
-                                    <img src={displayUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-3xl text-primary"><FaUser /></span>
-                                )}
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                                <label
-                                    htmlFor="foto"
-                                    className={`cursor-pointer text-sm font-medium text-primary hover:underline w-fit ${uploadando ? "opacity-50 pointer-events-none" : ""}`}
-                                >
-                                    {uploadando ? "Enviando..." : "Alterar foto"}
-                                </label>
-                                <input
-                                    id="foto"
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    className="hidden"
-                                    onChange={handleFotoSelecionada}
-                                />
-                                <span className="text-xs text-muted-foreground">JPG, PNG ou WebP — máx. 2MB</span>
-                                {errors.image && <p className="text-red-500 text-sm">{errors.image.message}</p>}
-                            </div>
-                        </div>
+                        <PhotoUpload
+                            username={nome}
+                            displayUrl={displayUrl}
+                            onFileChange={handleFotoSelecionada}
+                            uploading={uploadando}
+                            errorMessage={errors.image?.message}
+                        />
                     </Section>
                     <Section titulo="Informações básicas">
                         <div className="flex flex-col gap-1">
@@ -497,7 +411,7 @@ export default function ProfileClient({
                         <>
                             <Section titulo="Sobre a tutoria">
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-foreground">Descrição</label>
+                                    <label className="text-sm font-medium text-foreground">Descrição <span className="text-xs text-muted-foreground">(obrigatório)</span></label>
                                     <textarea {...register("descricao", {
                                         setValueAs: (value) => value.trim() === "" ? undefined : value
                                     })} rows={4} className="field-default resize-none" />
@@ -669,49 +583,28 @@ export default function ProfileClient({
                                                 <span className="text-sm text-muted-foreground">por hora</span>
                                             </div>
                                             <span className="text-xs text-muted-foreground">Deixe vazio para combinar o valor depois</span>
+                                            {errors.valorHora && <p className="text-red-500 text-sm">{errors.valorHora.message}</p>}
                                         </div>
                                     )}
                                 </div>
                             </Section>
  
-                            <Section titulo="Matérias">
-                                {errors.materias && <p className="text-red-500 text-sm mb-2">{errors.materias.message}</p>}
-                                <div className="flex flex-wrap gap-2">
-                                    {todasMaterias.map((m) => (
-                                        <button
-                                            key={m.id}
-                                            type="button"
-                                            onClick={() => toggleMateria(m.id)}
-                                            className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                                                materiasSelected?.includes(m.id)
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "bg-background text-foreground border-border hover:border-primary"
-                                            }`}
-                                        >
-                                            {m.nome}
-                                        </button>
-                                    ))}
-                                </div>
+                            <Section titulo="Matérias (obrigatório)">
+                                <TagSelector
+                                    items={todasMaterias}
+                                    selectedIds={materiasSelected}
+                                    onToggle={toggleMateria}
+                                    error={errors.materias?.message}
+                                />
                             </Section>
  
-                            <Section titulo="Níveis de ensino">
-                                {errors.niveisEnsino && <p className="text-red-500 text-sm mb-2">{errors.niveisEnsino.message}</p>}
-                                <div className="flex flex-wrap gap-2">
-                                    {todosNiveisEnsino.map((n) => (
-                                        <button
-                                            key={n.id}
-                                            type="button"
-                                            onClick={() => toggleNivel(n.id)}
-                                            className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                                                niveisEnsinoSelected?.includes(n.id)
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "bg-background text-foreground border-border hover:border-primary"
-                                            }`}
-                                        >
-                                            {n.nome}
-                                        </button>
-                                    ))}
-                                </div>
+                            <Section titulo="Níveis de ensino (obrigatório)">
+                                <TagSelector
+                                    items={todosNiveisEnsino}
+                                    selectedIds={niveisEnsinoSelected}
+                                    onToggle={toggleNivel}
+                                    error={errors.niveisEnsino?.message}
+                                />
                             </Section>
                         </>
                     )}

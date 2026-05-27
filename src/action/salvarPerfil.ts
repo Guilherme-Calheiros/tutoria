@@ -179,9 +179,36 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
                 }
             }
         }
+
+        const tutorAtual = await db.query.tutor.findFirst({
+            where: eq(tutor.userId, id),
+            with: {
+                user: true,
+                materias: true,
+                niveisEnsino: true,
+                enderecos: true,
+            },
+        })
+
+        if (tutorAtual) {
+            const completo = !!(
+                tutorAtual.descricao &&
+                tutorAtual.user.telefone &&
+                tutorAtual.materias.length > 0 &&
+                tutorAtual.niveisEnsino.length > 0 &&
+                (tutorAtual.modalidade === "ead" || (tutorAtual.enderecos?.length ?? 0) > 0)
+            )
+
+            if (completo !== tutorAtual.perfilCompleto) {
+                await db.update(tutor)
+                    .set({ perfilCompleto: completo })
+                    .where(eq(tutor.userId, id))
+            }
+        }
     }
 
     revalidatePath("/perfil")
+    revalidatePath("/api/notificacoes")
     return {success: true}
     
 }
