@@ -6,7 +6,8 @@ import * as authSchema from "@/lib/db/auth-schema";
 import { Resend } from "resend";
 import VerificarEmail from "@/app/components/emails/VerificarEmail";
 import DeletarContaEmail from "@/app/components/emails/DeletarContaEmail";
-import { deleteArquivo } from "./r2/r2";
+import { deleteArquivo, uploadArquivo } from "./r2/r2";
+import { eq } from "drizzle-orm";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -23,6 +24,20 @@ export const auth = betterAuth({
                             userId: user.id,
                             modalidade: "ead",
                         })
+                    }
+                    if(user.image && user.image.startsWith("https://lh3.googleusercontent.com")){
+                        try {
+                            const response = await fetch(user.image)
+                            if(response.ok){
+                                const buffer = Buffer.from(await response.arrayBuffer())
+                                const nome = `avatars/${user.id}-${Date.now()}.jpg`
+                                const contentType = response.headers.get("content-type") || "image/jpeg"
+                                const url = await uploadArquivo(nome, buffer, contentType)
+                                await db.update(authSchema.user).set({ image: url }).where(eq(authSchema.user.id, user.id))
+                            }
+                        } catch (error) {
+                            console.error("Falha ao migrar foto do Google:", error)
+                        }
                     }
                 }
             },
