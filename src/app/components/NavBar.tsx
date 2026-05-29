@@ -9,7 +9,7 @@ import UserAvatar from "@/app/components/UserAvatar";
 import Dropdown from "@/app/components/Dropdown";
 
 export default function NavBar() {
-    const { data: session, isPending } = useSession()
+    const { data: session, isPending, refetch } = useSession()
     const [dropdownAberto, setDropdownAberto] = useState(false)
     const [notifAberto, setNotifAberto] = useState(false)
     const [notificacoes, setNotificacoes] = useState<{ id: string; tipo: string; mensagem: string; link: string }[]>([])
@@ -28,11 +28,19 @@ export default function NavBar() {
             }
         }
 
+        function handleRefreshAvatar() {
+            refetch()
+        }
+
         fetchNotificacoes()
 
         window.addEventListener("refreshNotificacoes", fetchNotificacoes)
-        return () => window.removeEventListener("refreshNotificacoes", fetchNotificacoes)
-    }, [session])
+        window.addEventListener("refreshAvatar", handleRefreshAvatar)
+        return () => {
+            window.removeEventListener("refreshNotificacoes", fetchNotificacoes)
+            window.removeEventListener("refreshAvatar", handleRefreshAvatar)
+        }
+    }, [session, refetch])
 
     async function handleSignOut(){
         setDropdownAberto(false)
