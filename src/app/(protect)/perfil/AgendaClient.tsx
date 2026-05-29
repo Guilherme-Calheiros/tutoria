@@ -100,7 +100,6 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
     const [arrastando, setArrastando] = useState(false)
     const [modoArrasto, setModoArrasto] = useState<"marcar" | "desmarcar">("marcar")
     const [salvando, setSalvando] = useState(false)
-    const [sucesso, setSucesso] = useState(false)
     const [erro, setErro] = useState<string | null>(null)
     const tableRef = useRef<HTMLTableElement>(null)
     const [focusedCell, setFocusedCell] = useState({ diaIndex: 0, hora: HORAS[0] })
@@ -173,19 +172,20 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
     async function handleSalvar() {
         setSalvando(true)
         setErro(null)
-        setSucesso(false)
- 
         const result = await salvarAgenda(celulasParaBlocos(celulas))
- 
+  
         setSalvando(false)
- 
+  
+        const validationErrors = (result as any).validationErrors
+        if (validationErrors) {
+            setErro(validationErrors.map((e: { message: string }) => e.message).join(". "))
+            return
+        }
         if (result.error) {
             setErro(result.error)
             return
         }
  
-        setSucesso(true)
-        setTimeout(() => setSucesso(false), 3000)
     }
  
     return (
@@ -212,12 +212,6 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                     </button>
                 </div>
             </div>
- 
-            {sucesso && (
-                <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 mb-4">
-                    Agenda salva com sucesso!
-                </p>
-            )}
  
             {erro && (
                 <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-4">

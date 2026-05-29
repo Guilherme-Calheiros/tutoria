@@ -33,7 +33,10 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>, comp
     if(!parsed.success){
         return {
             success: false,
-            error: parsed.error.message
+            validationErrors: parsed.error.issues.map((issue) => ({
+                path: issue.path.join("."),
+                message: issue.message
+            }))
         };
     }
 
@@ -139,6 +142,10 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>, comp
                     paraAdicionar.map(nivelEnsinoId => ({ tutorId: id, nivelEnsinoId }))
                 )
             }
+        }
+
+        if (modalidade === "ead") {
+            await db.delete(enderecoAtendimento).where(eq(enderecoAtendimento.tutorId, id))
         }
 
         if (enderecos !== undefined){
