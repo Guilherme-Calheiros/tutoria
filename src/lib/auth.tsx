@@ -82,7 +82,7 @@ export const auth = betterAuth({
     emailVerification: {
         sendOnSignUp: true,
         autoSignInAfterVerification: true,
-        redirectTo: "/",
+        redirectTo: "/onboarding",
         sendVerificationEmail: async ({ user, url }) => {
             await sendVerificationEmail(user.email, url, user.name);
         }

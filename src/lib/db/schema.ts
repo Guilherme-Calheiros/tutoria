@@ -36,6 +36,7 @@ export const tutor = pgTable("tutor", {
     valorHora: numeric("valor_hora", { precision: 10, scale: 2 }),
     voluntario: boolean("voluntario").notNull().default(false),
     perfilCompleto: boolean("perfil_completo").notNull().default(false),
+    onboardingCompleto: boolean("onboarding_completo").notNull().default(false),
 })
 
 export const enderecoAtendimento = pgTable(

@@ -26,5 +26,5 @@ export async function GET() {
         modalidade: "ead",
     })
 
-    return NextResponse.redirect(new URL("/", process.env.NEXT_PUBLIC_APP_URL))
+    return NextResponse.redirect(new URL("/onboarding", process.env.NEXT_PUBLIC_APP_URL))
 }

@@ -4,14 +4,17 @@ import { salvarPerfil } from "@/action/salvarPerfil";
 import Campo from "@/app/components/CampoLabel";
 import Section from "@/app/components/Section";
 import { enderecoAtendimento, TutorSelect } from "@/lib/db/schema";
-import { schemaPerfil, schemaPerfilTutor, SchemaPerfil } from "@/schemas/perfil";
+import { schemaPerfil, SchemaPerfil } from "@/schemas/perfil";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { FaPencilAlt, FaTrash } from "react-icons/fa";
+import { useForm } from "react-hook-form";
+import { FaPencilAlt } from "react-icons/fa";
 import { IMaskInput } from "react-imask";
 import AgendaClient from "./AgendaClient";
 import TagSelector from "@/app/components/TagSelector";
+import ModalidadeSelector from "@/app/components/ModalidadeSelector";
+import TipoAtendimentoSelector from "@/app/components/TipoAtendimentoSelector";
+import VoluntarioToggle from "@/app/components/VoluntarioToggle";
 import PhotoUpload from "@/app/components/PhotoUpload";
 import DeleteAccountSection from "@/app/components/DeleteAccountSection";
 import UserAvatar from "@/app/components/UserAvatar";
@@ -21,7 +24,7 @@ type NivelEnsino = { id: number; nome: string }
 
 type EnderecoSelect = typeof enderecoAtendimento.$inferSelect
 
-type tutorData = (Omit<TutorSelect, "userId"> & {
+type tutorData = (Omit<TutorSelect, "userId" | "onboardingCompleto"> & {
     materias: number[];
     niveisEnsino: number[];
     enderecos: EnderecoSelect[];
@@ -67,7 +70,7 @@ export default function ProfileClient({
     }, [emailEnviado])
 
     const { register, handleSubmit, watch, setValue, reset, control, formState: { errors, isSubmitting, dirtyFields } } = useForm<SchemaPerfil>({
-        resolver: zodResolver(role === "tutor" ? schemaPerfilTutor : schemaPerfil),
+        resolver: zodResolver(schemaPerfil),
         defaultValues: {
             nome,
             telefone: telefone ?? undefined,
@@ -89,17 +92,15 @@ export default function ProfileClient({
         }
     })
 
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: "enderecos"
-    })
-
     const materiasSelected = watch("materias") ?? [];
     const niveisEnsinoSelected = watch("niveisEnsino") ?? [];
     const ensinaPrivado = watch("ensinaPrivado");
     const ensinaTurma = watch("ensinaTurma");
     const voluntario = watch("voluntario");
     const modalidade = watch("modalidade");
+    const telefoneWatched = watch("telefone")
+    const descricaoWatched = watch("descricao")
+    const enderecosWatched = watch("enderecos") ?? []
 
     const [fotoAtual, setFotoAtual] = useState<string | null>(image ?? null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -107,6 +108,14 @@ export default function ProfileClient({
     const [uploadando, setUploadando] = useState(false)
 
     const displayUrl = localPreview ?? fotoAtual
+
+    const faltandoCampos: { label: string; campo: string }[] = [
+        ...(!telefoneWatched ? [{ label: "Celular", campo: "telefone" }] : []),
+        ...(!descricaoWatched ? [{ label: "Descrição", campo: "descricao" }] : []),
+        ...(materiasSelected.length === 0 ? [{ label: "Matérias", campo: "materias" }] : []),
+        ...(niveisEnsinoSelected.length === 0 ? [{ label: "Níveis de ensino", campo: "niveisEnsino" }] : []),
+        ...(modalidade !== "ead" && enderecosWatched.length === 0 ? [{ label: "Endereços", campo: "enderecos" }] : []),
+    ]
 
     const materiasOriginais = tutorData?.materias ?? [];
     const niveisEnsinoOriginais = tutorData?.niveisEnsino ?? [];
@@ -146,11 +155,6 @@ export default function ProfileClient({
         const sortedB = [...b].sort((x,y) => x - y);
 
         return sortedA.every((v, i) => v === sortedB[i]);
-    }
-
-    function formatarValorParaInput(valor: string | null | undefined): string {
-        if (!valor) return ""
-        return valor.replace(".", ",")
     }
 
     function formatarTelefone(valor: string | null | undefined): string {
@@ -286,17 +290,18 @@ export default function ProfileClient({
                 </p>
             )}
 
-            {role === "tutor" && tutorData && !tutorData.perfilCompleto && (
+            {role === "tutor" && faltandoCampos.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
                     <p className="text-sm font-medium text-amber-800 mb-1">
-                        Seu perfil está incompleto
+                        {faltandoCampos.length === 1
+                            ? "Falta apenas 1 campo para seu perfil ficar completo"
+                            : `Faltam ${faltandoCampos.length} campos para seu perfil ficar completo`
+                        }
                     </p>
                     <ul className="text-sm text-amber-700 space-y-0.5 list-disc list-inside">
-                        {!telefone && <li>Adicione seu celular</li>}
-                        {!tutorData.descricao && <li>Adicione uma descrição</li>}
-                        {!tutorData.materias?.length && <li>Selecione as matérias</li>}
-                        {!tutorData.niveisEnsino?.length && <li>Selecione os níveis de ensino</li>}
-                        {tutorData.modalidade !== "ead" && !tutorData.enderecos?.length && <li>Adicione os endereços de atendimento</li>}
+                        {faltandoCampos.map(f => (
+                            <li key={f.campo}>{f.label}</li>
+                        ))}
                     </ul>
                 </div>
             )}
@@ -396,9 +401,7 @@ export default function ProfileClient({
                             {errors.nome && <p className="text-red-500 text-sm">{errors.nome.message}</p>}
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-medium text-foreground">
-                                Celular {role === "tutor" ? <span className="text-xs text-muted-foreground">(obrigatório)</span> : <span className="text-xs text-muted-foreground">(opcional)</span>}
-                            </label>
+                            <label className="text-sm font-medium text-foreground">Celular</label>
                             <IMaskInput id="telefone" unmask={true} mask="(00) 00000-0000" placeholder="(00) 00000-0000" defaultValue={formatarTelefone(telefone)} onAccept={(value) => setValue("telefone", value, {
                                 shouldDirty: true,
                                 shouldValidate: true
@@ -409,187 +412,45 @@ export default function ProfileClient({
  
                     {role === "tutor" && (
                         <>
-                            <Section titulo="Sobre a tutoria">
+                            <Section titulo="Descrição">
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-medium text-foreground">Descrição <span className="text-xs text-muted-foreground">(obrigatório)</span></label>
                                     <textarea {...register("descricao", {
                                         setValueAs: (value) => value.trim() === "" ? undefined : value
                                     })} rows={4} className="field-default resize-none" />
                                     {errors.descricao && <p className="text-red-500 text-sm">{errors.descricao.message}</p>}
                                 </div>
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-foreground">
-                                        Como você prefere dar aulas?
-                                    </label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {(["ead", "presencial", "ambos"] as const).map((op) => (
-                                            <button
-                                                key={op}
-                                                type="button"
-                                                onClick={() => setValue("modalidade", op, { shouldDirty: true })}
-                                                className={`px-4 py-2 rounded-full text-sm border transition-colors capitalize ${
-                                                    modalidade === op
-                                                        ? "bg-primary text-primary-foreground border-primary"
-                                                        : "bg-background text-foreground border-border hover:border-primary"
-                                                }`}
-                                            >
-                                                {op === "ead" ? "EAD" : op}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                {modalidade !== "ead" && (
-                                    <div className="flex flex-col gap-3 mt-2">
-                                        <div className="flex flex-col gap-1">
-                                            <label className="text-sm font-medium text-foreground">Regiões de atendimento</label>
-                                            <span className="text-xs text-muted-foreground">Adicione os locais onde você atende presencialmente</span>
-                                        </div>
+                            </Section>
 
-                                        {fields.map((field, index) => (
-                                            <div key={field.id} className="relative bg-muted rounded-xl p-4 flex flex-col gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => remove(index)}
-                                                    className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-                                                >
-                                                    <FaTrash className="w-3 h-3" />
-                                                </button>
-                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pr-8">
-                                                    <div className="flex flex-col gap-1">
-                                                        <label className="text-xs font-medium text-foreground">Cidade</label>
-                                                        <input
-                                                            className="field-default"
-                                                            placeholder="Ex: Rio de Janeiro"
-                                                            {...register(`enderecos.${index}.cidade`)}
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col gap-1">
-                                                        <label className="text-xs font-medium text-foreground">Bairro</label>
-                                                        <input
-                                                            className="field-default"
-                                                            placeholder="Ex: Botafogo"
-                                                            {...register(`enderecos.${index}.bairro`)}
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col gap-1">
-                                                        <label className="text-xs font-medium text-foreground">Estado</label>
-                                                        <input
-                                                            className="field-default max-w-20"
-                                                            placeholder="Ex: RJ"
-                                                            {...register(`enderecos.${index}.estado`)}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                            <Section titulo="Modalidade">
+                                <ModalidadeSelector
+                                    modalidade={modalidade}
+                                    control={control}
+                                    register={register}
+                                    setValue={setValue}
+                                    errors={errors}
+                                />
+                            </Section>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => append({ bairro: "", cidade: "", estado: "" })}
-                                            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors w-fit"
-                                        >
-                                            <span className="text-base leading-none">+</span>
-                                            Adicionar região
-                                        </button>
+                            <Section titulo="Tipo de atendimento" subtitulo="Selecione pelo menos um">
+                                <TipoAtendimentoSelector
+                                    ensinaPrivado={ensinaPrivado}
+                                    ensinaTurma={ensinaTurma}
+                                    setValue={setValue}
+                                    errors={errors}
+                                />
+                            </Section>
 
-                                        {errors.enderecos && (
-                                            <p className="text-red-500 text-sm">{errors.enderecos.message}</p>
-                                        )}
-                                    </div>
-                                )}
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex flex-col gap-0.5">
-                                        <label className="text-sm font-medium text-foreground">Tipo de atendimento</label>
-                                        <span className="text-xs text-muted-foreground">Selecione pelo menos um</span>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setValue("ensinaPrivado", !ensinaPrivado, { shouldDirty: true, shouldValidate: true })}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors ${
-                                                ensinaPrivado
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "bg-background text-foreground border-border hover:border-primary"
-                                            }`}
-                                        >
-                                            Particular
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => setValue("ensinaTurma", !ensinaTurma, { shouldDirty: true, shouldValidate: true })}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-colors ${
-                                                ensinaTurma
-                                                    ? "bg-primary text-primary-foreground border-primary"
-                                                    : "bg-background text-foreground border-border hover:border-primary"
-                                            }`}
-                                        >
-                                            Turma
-                                        </button>
-                                    </div>
-
-                                    {errors.ensinaPrivado && (
-                                        <p className="text-red-500 text-sm">{errors.ensinaPrivado.message}</p>
-                                    )}
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-sm font-medium text-foreground">Forma de cobrança</label>
-
-                                    <div className="flex items-center justify-between p-4 rounded-xl border border-border">
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-sm font-medium text-foreground">Atuo como voluntário</span>
-                                            <span className="text-xs text-muted-foreground">Seu perfil será exibido como gratuito para os alunos</span>
-                                        </div>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="sr-only peer"
-                                                {...register("voluntario", {
-                                                    onChange: (e) => {
-                                                        if (e.target.checked) {
-                                                            setValue("valorHora", undefined, { shouldDirty: true, shouldValidate: true })
-                                                        }
-                                                    }
-                                                })}
-                                            />
-                                            <div className="w-10 h-6 bg-border rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.75 after:left-0.75 after:bg-white after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:after:translate-x-4" />
-                                        </label>
-                                    </div>
-
-                                    {!voluntario && (
-                                        <div className="flex flex-col gap-2 p-4 rounded-xl bg-muted">
-                                            <label className="text-sm font-medium text-foreground">Valor por hora</label>
-                                            <div className="flex items-center gap-3">
-                                                <IMaskInput
-                                                    mask="R$ num"
-                                                    blocks={{
-                                                        num: {
-                                                            mask: Number,
-                                                            scale: 2,
-                                                            thousandsSeparator: ".",
-                                                            padFractionalZeros: true,
-                                                            radix: ",",
-                                                            min: 0,
-                                                            max: 9999,
-                                                        }
-                                                    }}
-                                                    placeholder="R$ 0,00"
-                                                    className="field-default max-w-xs"
-                                                    unmask={true}
-                                                    onAccept={(value) => setValue("valorHora", value, { shouldDirty: true, shouldValidate: true })}
-                                                    defaultValue={formatarValorParaInput(tutorData?.valorHora)}
-                                                />
-                                                <span className="text-sm text-muted-foreground">por hora</span>
-                                            </div>
-                                            <span className="text-xs text-muted-foreground">Deixe vazio para combinar o valor depois</span>
-                                            {errors.valorHora && <p className="text-red-500 text-sm">{errors.valorHora.message}</p>}
-                                        </div>
-                                    )}
-                                </div>
+                            <Section titulo="Forma de cobrança">
+                                <VoluntarioToggle
+                                    voluntario={voluntario}
+                                    valorHora={tutorData?.valorHora}
+                                    register={register}
+                                    setValue={setValue}
+                                    errors={errors}
+                                />
                             </Section>
  
-                            <Section titulo="Matérias (obrigatório)">
+                            <Section titulo="Matérias">
                                 <TagSelector
                                     items={todasMaterias}
                                     selectedIds={materiasSelected}
@@ -598,7 +459,7 @@ export default function ProfileClient({
                                 />
                             </Section>
  
-                            <Section titulo="Níveis de ensino (obrigatório)">
+                            <Section titulo="Níveis de ensino">
                                 <TagSelector
                                     items={todosNiveisEnsino}
                                     selectedIds={niveisEnsinoSelected}

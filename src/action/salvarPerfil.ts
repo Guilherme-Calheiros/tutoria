@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { deleteArquivo } from "@/lib/r2/r2";
 
-export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
+export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>, completarOnboarding?: boolean){
     const session = await auth.api.getSession({
         headers: await headers()
     });
@@ -205,6 +205,12 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
                     .where(eq(tutor.userId, id))
             }
         }
+    }
+
+    if (completarOnboarding) {
+        await db.update(tutor)
+            .set({ onboardingCompleto: true })
+            .where(eq(tutor.userId, id))
     }
 
     revalidatePath("/perfil")

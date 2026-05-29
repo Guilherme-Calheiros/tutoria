@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export const schemaPerfil = z.object({
     nome: z.string().min(2, "Nome deve conter pelo menos 2 caracteres").optional(),
-    telefone: z.string().optional(),
+    telefone: z.string().min(10, "Celular deve ter pelo menos 10 dígitos").or(z.literal("")).optional(),
     image: z.string().optional(),
     descricao: z.string().min(10, "Descrição deve conter pelo menos 10 caracteres").optional(),
     modalidade: z.enum(["ead", "presencial", "ambos"]).optional(),
@@ -45,24 +45,6 @@ export const schemaPerfil = z.object({
             message: "Voluntários não devem possuir valor por hora.",
             path: ["valorHora"]
         })
-    }
-})
-
-export const schemaPerfilTutor = schemaPerfil.superRefine((data, ctx) => {
-    if (!data.descricao || data.descricao.length < 10) {
-        ctx.addIssue({ code: "custom", message: "Descrição deve conter pelo menos 10 caracteres", path: ["descricao"] })
-    }
-    if (!data.telefone || data.telefone.length < 10) {
-        ctx.addIssue({ code: "custom", message: "Celular é obrigatório", path: ["telefone"] })
-    }
-    if (!data.materias?.length) {
-        ctx.addIssue({ code: "custom", message: "Selecione pelo menos uma matéria", path: ["materias"] })
-    }
-    if (!data.niveisEnsino?.length) {
-        ctx.addIssue({ code: "custom", message: "Selecione pelo menos um nível de ensino", path: ["niveisEnsino"] })
-    }
-    if ((data.modalidade === "presencial" || data.modalidade === "ambos") && (!data.enderecos || data.enderecos.length === 0)) {
-        ctx.addIssue({ code: "custom", message: "Adicione pelo menos um endereço de atendimento", path: ["enderecos"] })
     }
 })
 
