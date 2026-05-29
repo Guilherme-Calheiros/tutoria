@@ -31,7 +31,6 @@ export default function DeleteAccountSection({ onError, onEmailSent }: DeleteAcc
 
     return (
         <>
-            <hr className="my-8 border-border" />
             <div className="flex flex-col gap-4 p-6 rounded-2xl border border-red-200 bg-red-50/50">
                 <h2 className="text-sm font-semibold text-red-600 tracking-wide">Excluir conta</h2>
                 <p className="text-sm text-red-600/80">
