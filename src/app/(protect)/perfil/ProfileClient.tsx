@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { enderecoAtendimento, TutorSelect } from "@/lib/db/schema";
 import Section from "@/app/components/Section";
+import Tabs from "@/app/components/Tabs";
 import DeleteAccountSection from "@/app/components/DeleteAccountSection";
+import AlterarSenhaSection from "@/app/components/AlterarSenhaSection";
+import PoliticasPrivacidadeSection from "@/app/components/PoliticasPrivacidadeSection";
 import AlertaPerfilIncompleto from "./AlertaPerfilIncompleto";
 import SobreMimSection from "./sections/SobreMimSection";
 import TutoriaSection from "./sections/TutoriaSection";
@@ -76,53 +79,72 @@ export default function ProfileClient({
 
             {role === "tutor" && <AlertaPerfilIncompleto faltando={faltandoCampos} />}
 
-            <div className="flex flex-col gap-6">
-                <SobreMimSection
-                    userId={userId}
-                    nome={nome}
-                    telefone={telefone}
-                    image={image}
-                    role={role}
-                    descricao={tutorData?.descricao ?? null}
-                />
+            <Tabs.Root defaultValue="perfil">
+                <Tabs.List>
+                    <Tabs.Trigger value="perfil">Informações do perfil</Tabs.Trigger>
+                    <Tabs.Trigger value="conta">Sobre a conta</Tabs.Trigger>
+                </Tabs.List>
 
-                {role === "tutor" && tutorData && (
-                    <>
-                        <TutoriaSection
+                <Tabs.Content value="perfil">
+                    <div className="flex flex-col gap-6">
+                        <SobreMimSection
                             userId={userId}
-                            modalidade={tutorData.modalidade}
-                            enderecos={tutorData.enderecos}
-                            ensinaPrivado={tutorData.ensinaPrivado}
-                            ensinaTurma={tutorData.ensinaTurma}
-                            valorHora={tutorData.valorHora}
-                            voluntario={tutorData.voluntario}
+                            nome={nome}
+                            telefone={telefone}
+                            image={image}
+                            role={role}
+                            descricao={tutorData?.descricao ?? null}
                         />
 
-                        <MateriasSection
-                            userId={userId}
-                            materiasIds={tutorData.materias}
-                            todasMaterias={todasMaterias}
+                        {role === "tutor" && tutorData && (
+                            <>
+                                <TutoriaSection
+                                    userId={userId}
+                                    modalidade={tutorData.modalidade}
+                                    enderecos={tutorData.enderecos}
+                                    ensinaPrivado={tutorData.ensinaPrivado}
+                                    ensinaTurma={tutorData.ensinaTurma}
+                                    valorHora={tutorData.valorHora}
+                                    voluntario={tutorData.voluntario}
+                                />
+
+                                <MateriasSection
+                                    userId={userId}
+                                    materiasIds={tutorData.materias}
+                                    todasMaterias={todasMaterias}
+                                />
+
+                                <NiveisSection
+                                    userId={userId}
+                                    niveisIds={tutorData.niveisEnsino}
+                                    todosNiveis={todosNiveisEnsino}
+                                />
+
+                                <AgendaSection
+                                    disponibilidades={tutorData.disponibilidades}
+                                />
+                            </>
+                        )}
+                    </div>
+                </Tabs.Content>
+
+                <Tabs.Content value="conta">
+                    <div className="flex flex-col gap-6">
+                        <Section titulo="Alterar senha">
+                            <AlterarSenhaSection />
+                        </Section>
+
+                        <DeleteAccountSection
+                            onError={(msg) => setError(msg)}
+                            onEmailSent={() => setEmailEnviado(true)}
                         />
 
-                        <NiveisSection
-                            userId={userId}
-                            niveisIds={tutorData.niveisEnsino}
-                            todosNiveis={todosNiveisEnsino}
-                        />
-
-                        <AgendaSection
-                            disponibilidades={tutorData.disponibilidades}
-                        />
-                    </>
-                )}
-
-                <Section titulo="Configurações da conta">
-                    <DeleteAccountSection
-                        onError={(msg) => setError(msg)}
-                        onEmailSent={() => setEmailEnviado(true)}
-                    />
-                </Section>
-            </div>
+                        <Section titulo="Privacidade">
+                            <PoliticasPrivacidadeSection />
+                        </Section>
+                    </div>
+                </Tabs.Content>
+            </Tabs.Root>
 
             {error && (
                 <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">

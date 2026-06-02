@@ -1,13 +1,22 @@
 "use client"
 
 import { salvarAgenda } from "@/action/salvarAgenda"
-import { useState, useRef } from "react"
+import { useState, useRef, useMemo } from "react"
+import { FaAngleLeft, FaAngleRight, FaRegClock } from "react-icons/fa"
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
 
 const GRADE_PARA_DB = [1, 2, 3, 4, 5, 6, 0]
 
 const HORAS = Array.from({ length: 18 }, (_, i) => i + 6)
+
+const LINHAS_GRID = (() => {
+    const linhas: number[][] = []
+    for (let i = 0; i < HORAS.length; i += 6) {
+        linhas.push(HORAS.slice(i, i + 6))
+    }
+    return linhas
+})()
 
 type BlocoDisponibilidade = {
     diaDaSemana: number,
@@ -67,30 +76,26 @@ function celulasParaBlocos(celulas: Set<string>): BlocoDisponibilidade[] {
     return blocos
 }
 
-function formatarRange(celulas: Set<string>, diaIndex: number, horaInicio: number): string {
-    let horaFim = horaInicio + 1
-    while (celulas.has(`${diaIndex}-${horaFim}`)) {
-        horaFim++
+function rangesDoDia(celulas: Set<string>, diaIndex: number): { inicio: number; fim: number }[] {
+    const ranges: { inicio: number; fim: number }[] = []
+    let i = 0
+    while (i < HORAS.length) {
+        const hora = HORAS[i]
+        if (celulas.has(`${diaIndex}-${hora}`)) {
+            const inicio = hora
+            while (i < HORAS.length && celulas.has(`${diaIndex}-${HORAS[i]}`)) {
+                i++
+            }
+            ranges.push({ inicio, fim: HORAS[i - 1] + 1 })
+        } else {
+            i++
+        }
     }
-    const inicio = `${String(horaInicio).padStart(2, "0")}:00`
-    const fim = horaFim === 24 ? "23:59" : `${String(horaFim).padStart(2, "0")}:00`
-    return `${inicio} – ${fim}`
+    return ranges
 }
 
-function resumoTexto(celulas: Set<string>): string {
-    if (celulas.size === 0) return "Nenhum horário selecionado"
-
-    const blocos = celulasParaBlocos(celulas)
-    let texto = `${celulas.size}h selecionada${celulas.size !== 1 ? "s" : ""}`
-
-    if (blocos.length === 1) {
-        const fim = blocos[0].endTime === "24:00" ? "23:59" : blocos[0].endTime
-        texto += ` · ${blocos[0].startTime}–${fim}`
-    } else if (blocos.length > 1) {
-        texto += ` · ${blocos.length} blocos`
-    }
-
-    return texto
+function horasNoDia(celulas: Set<string>, diaIndex: number): number {
+    return HORAS.filter(h => celulas.has(`${diaIndex}-${h}`)).length
 }
 
 export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
@@ -101,25 +106,45 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
     const [modoArrasto, setModoArrasto] = useState<"marcar" | "desmarcar">("marcar")
     const [salvando, setSalvando] = useState(false)
     const [erro, setErro] = useState<string | null>(null)
-    const tableRef = useRef<HTMLTableElement>(null)
-    const [focusedCell, setFocusedCell] = useState({ diaIndex: 0, hora: HORAS[0] })
- 
-    function handleMouseDown(key: string) {
-        setArrastando(true)
-        const novoModo = celulas.has(key) ? "desmarcar" : "marcar"
-        setModoArrasto(novoModo)
+    const [diaMobile, setDiaMobile] = useState(0)
+    const touchRef = useRef({ startX: 0 })
+
+    function handleTouchStart(e: React.TouchEvent) {
+        touchRef.current.startX = e.touches[0].clientX
+    }
+
+    function handleTouchEnd(e: React.TouchEvent) {
+        const diff = e.changedTouches[0].clientX - touchRef.current.startX
+        if (Math.abs(diff) > 50) {
+            setDiaMobile(prev => diff > 0 ? Math.max(0, prev - 1) : Math.min(6, prev + 1))
+        }
+    }
+
+    const ranges = useMemo(() => rangesDoDia(celulas, diaMobile), [celulas, diaMobile])
+    const horas = useMemo(() => horasNoDia(celulas, diaMobile), [celulas, diaMobile])
+
+    function toggleCelula(key: string) {
         setCelulas(prev => {
             const next = new Set(prev)
-            novoModo === "desmarcar" ? next.delete(key) : next.add(key)
+            next.has(key) ? next.delete(key) : next.add(key)
             return next
         })
+    }
+
+    function handleMouseDown(key: string) {
+        const novoModo = celulas.has(key) ? "desmarcar" : "marcar"
+        setArrastando(true)
+        setModoArrasto(novoModo)
+        toggleCelula(key)
     }
  
     function handleMouseEnter(key: string) {
         if (!arrastando) return
         setCelulas(prev => {
             const next = new Set(prev)
-            modoArrasto === "desmarcar" ? next.delete(key) : next.add(key)
+            const tem = next.has(key)
+            if (modoArrasto === "marcar" && !tem) next.add(key)
+            if (modoArrasto === "desmarcar" && tem) next.delete(key)
             return next
         })
     }
@@ -128,45 +153,8 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
         setArrastando(false)
     }
 
-    function handleCellKeyDown(e: React.KeyboardEvent, diaIndex: number, hora: number) {
-        if (e.key === " " || e.key === "Enter") {
-            e.preventDefault()
-            handleMouseDown(`${diaIndex}-${hora}`)
-            return
-        }
-
-        let novoDia = diaIndex
-        let novaHora = hora
-
-        switch (e.key) {
-            case "ArrowUp":
-                novaHora = Math.max(HORAS[0], hora - 1)
-                e.preventDefault()
-                break
-            case "ArrowDown":
-                novaHora = Math.min(HORAS[HORAS.length - 1], hora + 1)
-                e.preventDefault()
-                break
-            case "ArrowLeft":
-                novoDia = Math.max(0, diaIndex - 1)
-                e.preventDefault()
-                break
-            case "ArrowRight":
-                novoDia = Math.min(6, diaIndex + 1)
-                e.preventDefault()
-                break
-            default:
-                return
-        }
-
-        const target = tableRef.current?.querySelector<HTMLElement>(
-            `[data-cell-key="${novoDia}-${novaHora}"]`
-        )
-        target?.focus()
-    }
-
-    function limparTudo() {
-        setCelulas(new Set())
+    function limparHorariosDia() {
+        setCelulas(prev => new Set([...prev].filter(key => !key.startsWith(`${diaMobile}-`))))
     }
  
     async function handleSalvar() {
@@ -185,122 +173,146 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
             setErro(result.error)
             return
         }
- 
     }
- 
+
     return (
-        <div className="w-full select-none" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <p className="text-xs text-muted-foreground">
-                    Clique ou arraste para marcar seus horários disponíveis.
-                </p>
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={limparTudo}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        Limpar tudo
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleSalvar}
-                        disabled={salvando}
-                        className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                        {salvando ? "Salvando..." : "Salvar agenda"}
-                    </button>
+        <div
+            className="w-full select-none"
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
+            <div className="flex items-center justify-between mb-4">
+                <button
+                    type="button"
+                    onClick={() => setDiaMobile(Math.max(0, diaMobile - 1))}
+                    disabled={diaMobile === 0}
+                    className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                    aria-label="Dia anterior"
+                >
+                    <FaAngleLeft />
+                </button>
+                <span className="text-base sm:text-lg font-bold text-foreground">
+                    {DIAS[diaMobile]}
+                </span>
+                <button
+                    type="button"
+                    onClick={() => setDiaMobile(Math.min(6, diaMobile + 1))}
+                    disabled={diaMobile === 6}
+                    className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                    aria-label="Próximo dia"
+                >
+                    <FaAngleRight />
+                </button>
+            </div>
+
+            <div className="bg-muted/30 rounded-2xl p-2.5 sm:p-3">
+                <div className="flex flex-col gap-1.5">
+                    {LINHAS_GRID.map((linha, i) => (
+                        <div key={i} className="flex gap-1.5 sm:gap-2 justify-center">
+                            {linha.map(hora => {
+                                const key = `${diaMobile}-${hora}`
+                                const selecionado = celulas.has(key)
+                                return (
+                                    <div
+                                        key={hora}
+                                        data-cell-key={key}
+                                        className={`
+                                            flex-1 rounded-xl px-1.5 py-2.5 sm:py-3 text-center text-xs sm:text-sm font-semibold tabular-nums
+                                            transition-all duration-100 cursor-pointer
+                                            ${selecionado
+                                                ? "bg-primary text-primary-foreground shadow-sm"
+                                                : "bg-background text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted"
+                                            }
+                                        `}
+                                        onMouseDown={() => handleMouseDown(key)}
+                                        onMouseEnter={() => handleMouseEnter(key)}
+                                    >
+                                        {String(hora).padStart(2, "0")}h
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ))}
                 </div>
             </div>
- 
+
+            <div className="flex items-center justify-center gap-1.5 mt-4 mb-3">
+                {DIAS.map((_, i) => (
+                    <button
+                        key={i}
+                        type="button"
+                        onClick={() => setDiaMobile(i)}
+                        className={`cursor-pointer rounded-full transition-all duration-300 ${
+                            i === diaMobile
+                                ? "w-6 h-1.5 bg-primary"
+                                : "w-1.5 h-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                        }`}
+                        aria-label={`Ir para ${DIAS[i]}`}
+                    />
+                ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-4">
+                {horas > 0 ? (
+                    <>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-base font-bold text-foreground tabular-nums">{horas}h</span>
+                            <span className="text-xs text-muted-foreground">disponíve{horas !== 1 ? "is" : "l"}</span>
+                        </div>
+                        <span className="hidden sm:inline text-muted-foreground/30">·</span>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {ranges.map((r, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 bg-secondary text-muted-foreground px-2 py-0.5 rounded-md font-medium tabular-nums">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                                    {String(r.inicio).padStart(2, "0")}h–{String(r.fim).padStart(2, "0")}h
+                                </span>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <FaRegClock />
+                        <span>Nenhum horário definido</span>
+                    </div>
+                )}
+            </div>
+
             {erro && (
                 <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-4">
                     {erro}
                 </p>
             )}
- 
-            <div className="overflow-x-auto rounded-xl border border-border">
-                <table ref={tableRef} role="grid" aria-label="Grade de horários disponíveis" className="w-full min-w-[640px] table-fixed border-collapse">
-                    <thead>
-                        <tr role="row">
-                            <th scope="col" role="columnheader" className="w-14 bg-muted border-b border-r border-border" />
-                            {DIAS.map((dia, i) => (
-                                <th
-                                    key={i}
-                                    scope="col"
-                                    role="columnheader"
-                                    className="bg-muted border-b border-r border-border py-3 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center last:border-r-0"
-                                >
-                                    {dia}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {HORAS.map((hora) => (
-                            <tr key={hora} role="row" className="group">
-                                <th scope="row" role="rowheader" className="bg-muted border-b border-r border-border py-2 px-3 text-xs text-muted-foreground text-right font-medium align-middle">
-                                    {String(hora).padStart(2, "0")}h
-                                </th>
-                                {DIAS.map((_, diaIndex) => {
-                                    const key = `${diaIndex}-${hora}`
-                                    const ativa = celulas.has(key)
-                                    const temAcima = celulas.has(`${diaIndex}-${hora - 1}`)
- 
-                                    return (
-                                        <td
-                                            key={diaIndex}
-                                            role="gridcell"
-                                            tabIndex={
-                                                focusedCell.diaIndex === diaIndex && focusedCell.hora === hora
-                                                    ? 0
-                                                    : -1
-                                            }
-                                            aria-selected={ativa}
-                                            aria-label={`${DIAS[diaIndex]} ${String(hora).padStart(2, "0")}:00${ativa ? ", disponível" : ""}`}
-                                            data-cell-key={key}
-                                            className={`
-                                                border-b border-r border-border min-h-11 sm:h-10 cursor-pointer transition-colors last:border-r-0
-                                                ${ativa
-                                                    ? "bg-primary/85 hover:bg-primary"
-                                                    : "bg-background hover:bg-secondary"
-                                                }
-                                                focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2 focus-visible:relative
-                                            `}
-                                            onMouseDown={() => handleMouseDown(key)}
-                                            onMouseEnter={() => handleMouseEnter(key)}
-                                            onFocus={() => setFocusedCell({ diaIndex, hora })}
-                                            onKeyDown={(e) => handleCellKeyDown(e, diaIndex, hora)}
-                                        >
 
-                                            {ativa && !temAcima && (
-                                                <div className="hidden sm:block px-2 pt-1.5">
-                                                    <span className="text-xs text-primary-foreground font-medium leading-none">
-                                                        {formatarRange(celulas, diaIndex, hora)}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
- 
-            <div className="flex flex-wrap items-center gap-4 mt-3">
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-primary" />
-                    <span className="text-xs text-muted-foreground">Disponível</span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-primary" />
+                        <span className="text-xs text-muted-foreground">Disponível</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-muted border border-border" />
+                        <span className="text-xs text-muted-foreground">Indisponível</span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-muted border border-border" />
-                    <span className="text-xs text-muted-foreground">Indisponível</span>
+                    <button
+                        type="button"
+                        onClick={limparHorariosDia}
+                        className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        Limpar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSalvar}
+                        disabled={salvando}
+                        className="cursor-pointer bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                        {salvando ? "Salvando..." : "Salvar"}
+                    </button>
                 </div>
-                <span className="text-xs text-muted-foreground ml-2">
-                    {resumoTexto(celulas)}
-                </span>
             </div>
         </div>
     )
