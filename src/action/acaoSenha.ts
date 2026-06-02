@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { account } from "@/lib/db/auth-schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { headers } from "next/headers";
 
 export async function verificarTemSenha() {
@@ -18,7 +18,7 @@ export async function verificarTemSenha() {
         .from(account)
         .where(and(
             eq(account.userId, session.user.id),
-            eq(account.providerId, "email")
+            isNotNull(account.password)
         ))
         .limit(1);
 
