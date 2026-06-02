@@ -9,14 +9,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { FormLoginSchema, schemaLogin } from "@/schemas/login";
 import PasswordInput from "../components/PasswordInput";
-
-
+import ResetPasswordDialog from "../components/ResetPasswordDialog";
 
 export default function LoginPage() {
 
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormLoginSchema>({
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const { register, handleSubmit, getValues, formState: { errors, isSubmitting } } = useForm<FormLoginSchema>({
         resolver: zodResolver(schemaLogin)
     });
 
@@ -69,6 +69,9 @@ export default function LoginPage() {
                         </label>
                         <PasswordInput id="senha" placeholder="Minimo 8 caracteres" {...register("senha")} />
                         {errors.senha && <p className="text-red-500 text-sm mt-1">{errors.senha.message}</p>}
+                        <button type="button" onClick={() => setDialogOpen(true)} className="text-xs text-primary hover:underline mt-1 text-right">
+                            Esqueci minha senha
+                        </button>
                     </div>
 
                     {error && (
@@ -104,6 +107,12 @@ export default function LoginPage() {
                     Criar conta
                 </Link>
             </p>
+
+            <ResetPasswordDialog
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
+                defaultEmail={getValues("email")}
+            />
         </main>
     )
 }

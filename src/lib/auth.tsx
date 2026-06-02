@@ -6,6 +6,7 @@ import * as authSchema from "@/lib/db/auth-schema";
 import { Resend } from "resend";
 import VerificarEmail from "@/app/components/emails/VerificarEmail";
 import DeletarContaEmail from "@/app/components/emails/DeletarContaEmail";
+import ResetarSenhaEmail from "@/app/components/emails/ResetarSenhaEmail";
 import { deleteArquivo, uploadArquivo } from "./r2/r2";
 import { eq } from "drizzle-orm";
 
@@ -55,6 +56,9 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
+        sendResetPassword: async ({ user, url }) => {
+            await sendResetPasswordEmail(user.email, url, user.name);
+        },
     },
 
     user: {
@@ -115,5 +119,16 @@ async function sendDeleteAccountEmail(email: string, url: string, name: string) 
         to: email,
         subject: 'Confirme a exclusão da sua conta',
         react: <DeletarContaEmail url={url} name={name} />,
+    })
+}
+
+async function sendResetPasswordEmail(email: string, url: string, name: string) {
+    const resend = new Resend(process.env.RESEND_API_KEY!);
+
+    await resend.emails.send({
+        from: `Tutoria <${process.env.EMAIL_FROM}>`,
+        to: email,
+        subject: 'Redefina sua senha',
+        react: <ResetarSenhaEmail url={url} name={name} />,
     })
 }
