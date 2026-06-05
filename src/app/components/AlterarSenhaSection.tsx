@@ -8,17 +8,11 @@ import { verificarTemSenha, criarSenha } from "@/action/acaoSenha";
 import { FormAlterarSenhaSchema, schemaAlterarSenha } from "@/schemas/alterar-senha";
 import { FormResetarSenhaSchema, schemaResetarSenha } from "@/schemas/resetar-senha";
 import PasswordInput from "./PasswordInput";
+import Mensagem from "./Mensagem";
 
 export default function AlterarSenhaSection() {
     const [temSenha, setTemSenha] = useState<boolean | null>(null);
-    const [sucesso, setSucesso] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!error && !sucesso) return;
-        const t = setTimeout(() => { setError(null); setSucesso(false); }, 5000);
-        return () => clearTimeout(t);
-    }, [error, sucesso]);
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null);
 
     const formAlterar = useForm<FormAlterarSenhaSchema>({
         resolver: zodResolver(schemaAlterarSenha)
@@ -33,8 +27,7 @@ export default function AlterarSenhaSection() {
     }, []);
 
     const handleChangePassword = async (data: FormAlterarSenhaSchema) => {
-        setError(null);
-        setSucesso(false);
+        setMensagem(null);
 
         const { error: authError } = await authClient.changePassword({
             currentPassword: data.senhaAtual,
@@ -43,26 +36,25 @@ export default function AlterarSenhaSection() {
         });
 
         if (authError) {
-            setError(authError.message ?? "Ocorreu um erro ao alterar a senha.");
+            setMensagem({ type: "erro", text: authError.message ?? "Ocorreu um erro ao alterar a senha." });
             return;
         }
 
-        setSucesso(true);
+        setMensagem({ type: "sucesso", text: "Senha alterada com sucesso!" });
         formAlterar.reset();
     };
 
     const handleCreatePassword = async (data: FormResetarSenhaSchema) => {
-        setError(null);
-        setSucesso(false);
+        setMensagem(null);
 
         const res = await criarSenha(data.novaSenha);
 
         if (!res.success) {
-            setError(res.error ?? "Ocorreu um erro ao criar a senha.");
+            setMensagem({ type: "erro", text: res.error ?? "Ocorreu um erro ao criar a senha." });
             return;
         }
 
-        setSucesso(true);
+        setMensagem({ type: "sucesso", text: "Senha criada com sucesso!" });
         setTemSenha(true);
         formCriar.reset();
     };
@@ -85,17 +77,7 @@ export default function AlterarSenhaSection() {
                     {formCriar.formState.errors.novaSenha && <p className="text-red-500 text-sm mt-1">{formCriar.formState.errors.novaSenha.message}</p>}
                 </div>
 
-                {error && (
-                    <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                        {error}
-                    </p>
-                )}
-
-                {sucesso && (
-                    <p className="text-sm text-green-500 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">
-                        Senha criada com sucesso!
-                    </p>
-                )}
+                {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} />}
 
                 <button type="submit" disabled={formCriar.formState.isSubmitting} className="bg-primary p-2 font-semibold rounded-lg text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     {formCriar.formState.isSubmitting ? "Criando..." : "Criar senha"}
@@ -121,17 +103,7 @@ export default function AlterarSenhaSection() {
                 {formAlterar.formState.errors.novaSenha && <p className="text-red-500 text-sm mt-1">{formAlterar.formState.errors.novaSenha.message}</p>}
             </div>
 
-            {error && (
-                <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                    {error}
-                </p>
-            )}
-
-            {sucesso && (
-                <p className="text-sm text-green-500 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">
-                    Senha alterada com sucesso!
-                </p>
-            )}
+            {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} />}
 
             <button type="submit" disabled={formAlterar.formState.isSubmitting} className="bg-primary p-2 font-semibold rounded-lg text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2">
                 {formAlterar.formState.isSubmitting ? "Alterando..." : "Alterar senha"}

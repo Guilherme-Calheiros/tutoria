@@ -53,9 +53,9 @@ export default function ResetPasswordDialog({ open, onOpenChange, defaultEmail }
     return (
         <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
             <AlertDialog.Portal>
-                <AlertDialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
+                <AlertDialog.Overlay className="fixed inset-0 z-30 bg-black/50" />
 
-                <AlertDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-background p-4 sm:p-6 shadow-lg border-border border">
+                <AlertDialog.Content className="fixed left-1/2 top-1/2 z-40 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-background p-6 shadow-lg border-border border">
                     <AlertDialog.Title className="text-lg font-semibold text-foreground">
                         Redefinir senha
                     </AlertDialog.Title>
@@ -85,18 +85,20 @@ export default function ResetPasswordDialog({ open, onOpenChange, defaultEmail }
                                         placeholder="seu@email.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        aria-invalid={!!error}
+                                        aria-describedby={error ? "erro-reset" : undefined}
                                         className="field-default"
                                     />
                                 </div>
                             )}
 
-                            {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+                            {error && <p id="erro-reset" className="text-sm text-destructive mt-2" role="alert">{error}</p>}
                         </>
                     )}
 
                     <div className="mt-6 flex gap-2 justify-end">
                         <AlertDialog.Cancel
-                            className="border border-border rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                            className="inline-flex items-center justify-center min-h-11 border border-border rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
                         >
                             {enviado ? "Fechar" : "Cancelar"}
                         </AlertDialog.Cancel>
@@ -106,7 +108,7 @@ export default function ResetPasswordDialog({ open, onOpenChange, defaultEmail }
                                 type="button"
                                 disabled={!email || enviando}
                                 onClick={handleSend}
-                                className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                className="inline-flex items-center justify-center min-h-11 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors disabled:opacity-50"
                             >
                                 {enviando ? "Enviando..." : "Enviar link"}
                             </button>
