@@ -12,6 +12,7 @@ import { FaCheck, FaChevronLeft, FaChevronRight } from "react-icons/fa"
 import ModalidadeSelector from "@/app/components/ModalidadeSelector"
 import TipoAtendimentoSelector from "@/app/components/TipoAtendimentoSelector"
 import VoluntarioToggle from "@/app/components/VoluntarioToggle"
+import Mensagem from "@/app/components/Mensagem"
 
 type Materia = { id: number; nome: string }
 type NivelEnsino = { id: number; nome: string }
@@ -51,7 +52,7 @@ export default function OnboardingClient({
 }: OnboardingClientProps) {
     const router = useRouter()
     const [passo, setPasso] = useState(0)
-    const [error, setError] = useState<string | null>(null)
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm<SchemaPerfil>({
@@ -112,11 +113,11 @@ export default function OnboardingClient({
 
     async function onSubmit(data: SchemaPerfil) {
         setIsSubmitting(true)
-        setError(null)
+        setMensagem(null)
 
         const result = await salvarPerfil(userId, data, true)
         if (result?.error) {
-            setError(result.error)
+            setMensagem({ type: "erro", text: result.error })
             setIsSubmitting(false)
             return
         }
@@ -179,7 +180,7 @@ export default function OnboardingClient({
 
             <form onSubmit={(e) => e.preventDefault()}>
                 {passo === 0 && (
-                    <div className="border border-border rounded-2xl p-6 flex flex-col gap-6 shadow-sm">
+                    <div className="border border-border rounded-xl p-6 flex flex-col gap-6">
                         <div>
                             <h2 className="text-lg font-semibold text-foreground mb-1">Celular <span className="text-xs text-muted-foreground font-normal">(obrigatório)</span></h2>
                             <p className="text-sm text-muted-foreground mb-3">
@@ -193,9 +194,9 @@ export default function OnboardingClient({
                                 onAccept={(value) => setValue("telefone", value, { shouldDirty: true, shouldValidate: true })}
                                 className="field-default max-w-xs"
                             />
-                            {errors.telefone && <p className="text-red-500 text-sm mt-1">{errors.telefone.message}</p>}
+                            {errors.telefone && <p role="alert" className="text-destructive text-sm mt-1">{errors.telefone.message}</p>}
                             {(!telefoneValue || telefoneValue.replace(/\D/g, "").length < 10) && (
-                                <p className="text-amber-600 text-xs mt-1.5">
+                                <p className="text-accent text-xs mt-1.5">
                                     Celular é a principal forma de contato com você
                                 </p>
                             )}
@@ -213,13 +214,13 @@ export default function OnboardingClient({
                                 className="field-default resize-none"
                                 placeholder="Ex: Sou formado em Matemática pela UFRJ e dou aulas há 5 anos..."
                             />
-                            {errors.descricao && <p className="text-red-500 text-sm mt-1">{errors.descricao.message}</p>}
+                            {errors.descricao && <p role="alert" className="text-destructive text-sm mt-1">{errors.descricao.message}</p>}
                         </div>
                     </div>
                 )}
 
                 {passo === 1 && (
-                    <div className="border border-border rounded-2xl p-6 flex flex-col gap-6 shadow-sm">
+                    <div className="border border-border rounded-xl p-6 flex flex-col gap-6">
                         <div>
                             <h2 className="text-lg font-semibold text-foreground mb-1">Matérias</h2>
                             <p className="text-sm text-muted-foreground mb-3">Selecione as matérias que você ensina</p>
@@ -244,7 +245,7 @@ export default function OnboardingClient({
                 )}
 
                 {passo === 2 && (
-                    <div className="border border-border rounded-2xl p-6 flex flex-col gap-6 shadow-sm">
+                    <div className="border border-border rounded-xl p-6 flex flex-col gap-6">
                         <ModalidadeSelector
                             modalidade={modalidade}
                             control={control}
@@ -277,17 +278,13 @@ export default function OnboardingClient({
                     </div>
                 )}
 
-                {error && (
-                    <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mt-4">
-                        {error}
-                    </p>
-                )}
+                {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} />}
 
                 <div className="flex items-center justify-between mt-6">
                     <button
                         type="button"
                         onClick={() => setPasso(Math.max(0, passo - 1))}
-                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        className={`inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                             passo === 0
                                 ? "invisible"
                                 : "border border-border text-foreground hover:bg-muted"
@@ -302,7 +299,7 @@ export default function OnboardingClient({
                             <button
                                 type="button"
                                 onClick={() => setPasso(passo + 1)}
-                                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                className="inline-flex items-center min-h-11 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                             >
                                 Pular
                             </button>
@@ -318,7 +315,7 @@ export default function OnboardingClient({
                                 }
                             }}
                             disabled={passo < STEPS.length - 1 ? !podeAvancar() : isSubmitting}
-                            className="flex items-center gap-2 bg-primary text-primary-foreground rounded-lg px-6 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                            className="inline-flex items-center justify-center gap-2 min-h-11 bg-primary text-primary-foreground rounded-lg px-6 py-2 text-sm font-medium hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-opacity disabled:opacity-50"
                         >
                             {passo < STEPS.length - 1 ? (
                                 <>
