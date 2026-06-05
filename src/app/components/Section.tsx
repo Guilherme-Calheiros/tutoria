@@ -11,7 +11,7 @@ const Section = forwardRef<HTMLDivElement, SectionProps>(( { titulo, subtitulo, 
     return (
         <div ref={ref} {...props} className={`border border-border rounded-2xl p-6 flex flex-col gap-4 shadow-sm ${className ?? ""}`}>
             <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground tracking-wide">{titulo}</h2>
+                <h2 className="text-base lg:text-lg font-semibold text-foreground">{titulo}</h2>
                 {action}
             </div>
             {subtitulo && <p className="text-xs text-muted-foreground -mt-2">{subtitulo}</p>}
