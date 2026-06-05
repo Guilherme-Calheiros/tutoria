@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { enderecoAtendimento, TutorSelect } from "@/lib/db/schema";
 import Section from "@/app/components/Section";
 import Tabs from "@/app/components/Tabs";
 import DeleteAccountSection from "@/app/components/DeleteAccountSection";
 import AlterarSenhaSection from "@/app/components/AlterarSenhaSection";
 import PoliticasPrivacidadeSection from "@/app/components/PoliticasPrivacidadeSection";
+import Mensagem from "@/app/components/Mensagem";
 import AlertaPerfilIncompleto from "./AlertaPerfilIncompleto";
 import SobreMimSection from "./sections/SobreMimSection";
 import TutoriaSection from "./sections/TutoriaSection";
@@ -47,15 +48,7 @@ export default function ProfileClient({
     todasMaterias,
     todosNiveisEnsino,
 }: ProfileClientProps){
-    const [error, setError] = useState<string | null>(null);
-    const [emailEnviado, setEmailEnviado] = useState(false);
-
-    useEffect(() => {
-        if (!emailEnviado) return;
-        const timer = setTimeout(() => setEmailEnviado(false), 8000);
-        return () => clearTimeout(timer);
-    }, [emailEnviado])
-
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null);
     const faltandoCampos: { label: string; campo: string }[] = [
         ...(!telefone ? [{ label: "Celular", campo: "telefone" }] : []),
         ...(role === "tutor" && !tutorData?.descricao ? [{ label: "Descrição", campo: "descricao" }] : []),
@@ -67,15 +60,9 @@ export default function ProfileClient({
     return (
         <div className="w-full max-w-5xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 py-4">
 
-            <h1 className="text-4xl font-semibold text-primary mb-8">
+            <h1 className="text-4xl font-bold text-primary mb-8">
                 Meu Perfil
             </h1>
-
-            {emailEnviado && (
-                <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 mb-6">
-                    Enviamos um link de confirmação para seu e-mail. Clique no link para concluir a exclusão da sua conta.
-                </p>
-            )}
 
             {role === "tutor" && <AlertaPerfilIncompleto faltando={faltandoCampos} />}
 
@@ -135,8 +122,8 @@ export default function ProfileClient({
                         </Section>
 
                         <DeleteAccountSection
-                            onError={(msg) => setError(msg)}
-                            onEmailSent={() => setEmailEnviado(true)}
+                            onError={(msg) => setMensagem({ type: "erro", text: msg })}
+                            onEmailSent={() => setMensagem({ type: "sucesso", text: "Enviamos um link de confirmação para seu e-mail. Clique no link para concluir a exclusão da sua conta." })}
                         />
 
                         <Section titulo="Privacidade">
@@ -146,11 +133,7 @@ export default function ProfileClient({
                 </Tabs.Content>
             </Tabs.Root>
 
-            {error && (
-                <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                    {error}
-                </p>
-            )}
+            {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} duration={8000} />}
         </div>
     )
 }

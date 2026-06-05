@@ -11,6 +11,7 @@ import UserAvatar from "@/app/components/UserAvatar"
 import PhotoUpload from "@/app/components/PhotoUpload"
 import Section from "@/app/components/Section"
 import Campo from "@/app/components/CampoLabel"
+import Mensagem from "@/app/components/Mensagem"
 
 const schema = z.object({
     nome: z.string().min(2, "Nome deve conter pelo menos 2 caracteres"),
@@ -51,8 +52,7 @@ export default function SobreMimSection({
     descricao: descricaoInicial,
 }: SobreMimSectionProps) {
     const [editando, setEditando] = useState(false)
-    const [hover, setHover] = useState(false)
-    const [erro, setErro] = useState<string | null>(null)
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null)
 
     const [fotoAtual, setFotoAtual] = useState<string | null>(imageInicial)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -69,12 +69,6 @@ export default function SobreMimSection({
             descricao: descricaoInicial ?? "",
         }
     })
-
-    useEffect(() => {
-        if (!erro) return
-        const timer = setTimeout(() => setErro(null), 5000)
-        return () => clearTimeout(timer)
-    }, [erro])
 
     useEffect(() => {
         reset({
@@ -94,7 +88,7 @@ export default function SobreMimSection({
     }
 
     async function onSubmit(data: FormData) {
-        setErro(null)
+        setMensagem(null)
         const diff: Record<string, unknown> = {}
 
         if (data.nome !== nomeInicial) diff.nome = data.nome
@@ -109,9 +103,9 @@ export default function SobreMimSection({
             formData.set("file", selectedFile)
             const res = await fetch("/api/upload", { method: "POST", body: formData })
             setUploadando(false)
-            if (!res.ok) { setErro("Erro ao fazer upload da foto"); return }
+            if (!res.ok) { setMensagem({ type: "erro", text: "Erro ao fazer upload da foto" }); return }
             const json = await res.json()
-            if (json.error) { setErro(json.error); return }
+            if (json.error) { setMensagem({ type: "erro", text: json.error }); return }
             diff.image = json.url
             setFotoAtual(json.url)
         }
@@ -129,7 +123,7 @@ export default function SobreMimSection({
             return
         }
         if (result?.error) {
-            setErro(result.error)
+            setMensagem({ type: "erro", text: result.error })
             return 
         }
 
@@ -137,6 +131,7 @@ export default function SobreMimSection({
         if (localPreview) URL.revokeObjectURL(localPreview)
         setLocalPreview(null)
         setEditando(false)
+        setMensagem({ type: "sucesso", text: "Perfil salvo com sucesso" })
         window.dispatchEvent(new CustomEvent("refreshNotificacoes"))
         window.dispatchEvent(new CustomEvent("refreshAvatar"))
     }
@@ -145,20 +140,18 @@ export default function SobreMimSection({
         return (
             <Section
                 titulo="Sobre mim"
-                onMouseEnter={() => setHover(true)}
-                onMouseLeave={() => setHover(false)}
                 action={
-                    hover && (
-                        <button
-                            type="button"
-                            onClick={() => setEditando(true)}
-                            className="text-muted-foreground hover:text-primary transition-colors"
-                        >
-                            <FaPencilAlt className="w-3.5 h-3.5" />
-                        </button>
-                    )
+                    <button
+                        type="button"
+                        onClick={() => setEditando(true)}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                        aria-label="Editar Sobre mim"
+                    >
+                        <FaPencilAlt className="w-3.5 h-3.5" />
+                    </button>
                 }
             >
+                {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} duration={4000} />}
                 <div className="flex items-center gap-4">
                     <UserAvatar name={nomeInicial} src={fotoAtual} size="lg" />
                     <div>
@@ -211,11 +204,7 @@ export default function SobreMimSection({
                         {errors.descricao && <p className="text-red-500 text-sm">{errors.descricao.message}</p>}
                     </div>
                 )}
-                {erro && (
-                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                        {erro}
-                    </p>
-                )}
+                {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} duration={5000} />}
                 <div className="flex gap-3">
                     <button
                         type="submit"

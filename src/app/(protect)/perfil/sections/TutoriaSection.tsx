@@ -11,6 +11,7 @@ import Campo from "@/app/components/CampoLabel"
 import ModalidadeSelector from "@/app/components/ModalidadeSelector"
 import TipoAtendimentoSelector from "@/app/components/TipoAtendimentoSelector"
 import VoluntarioToggle from "@/app/components/VoluntarioToggle"
+import Mensagem from "@/app/components/Mensagem"
 
 const schema = z.object({
     modalidade: z.enum(["ead", "presencial", "ambos"]),
@@ -72,8 +73,7 @@ export default function TutoriaSection({
     voluntario: voluntarioInicial,
 }: TutoriaSectionProps) {
     const [editando, setEditando] = useState(false)
-    const [hover, setHover] = useState(false)
-    const [erro, setErro] = useState<string | null>(null)
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null)
 
     const defaultValues = {
         modalidade: modalidadeInicial as FormData["modalidade"],
@@ -93,12 +93,6 @@ export default function TutoriaSection({
     const voluntario = watch("voluntario")
     const ensinaPrivado = watch("ensinaPrivado")
     const ensinaTurma = watch("ensinaTurma")
-
-    useEffect(() => {
-        if (!erro) return
-        const timer = setTimeout(() => setErro(null), 5000)
-        return () => clearTimeout(timer)
-    }, [erro])
 
     useEffect(() => {
         reset(defaultValues)
@@ -151,11 +145,12 @@ export default function TutoriaSection({
             return
         }
         if (result?.error) {
-            setErro(result.error)
+            setMensagem({ type: "erro", text: result.error })
             return
         }
 
         setEditando(false)
+        setMensagem({ type: "sucesso", text: "Dados salvos com sucesso" })
         window.dispatchEvent(new CustomEvent("refreshNotificacoes"))
     }
 
@@ -163,21 +158,22 @@ export default function TutoriaSection({
         return (
             <Section
                 titulo="Sobre a tutoria"
-                onMouseEnter={() => setHover(true)}
-                onMouseLeave={() => setHover(false)}
                 action={
-                    hover && (
-                        <button
-                            type="button"
-                            onClick={() => setEditando(true)}
-                            className="text-muted-foreground hover:text-primary cursor-pointer transition-colors"
-                        >
-                            <FaPencilAlt className="w-3.5 h-3.5" />
-                        </button>
-                    )
+                    <button
+                        type="button"
+                        onClick={() => setEditando(true)}
+                        className="text-muted-foreground hover:text-primary cursor-pointer transition-colors"
+                        aria-label="Editar Sobre a tutoria"
+                    >
+                        <FaPencilAlt className="w-3.5 h-3.5" />
+                    </button>
                 }
             >
-                <Campo label="Modalidade" valor={modalidadeInicial.toUpperCase()} />
+                {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} duration={4000} />}
+                <Campo label="Modalidade" valor={
+                    modalidadeInicial === "ead" ? "EAD" :
+                    modalidadeInicial === "presencial" ? "Presencial" : "Presencial e EAD"
+                } />
                 {enderecosIniciais.length > 0 && (
                     <div className="flex flex-col gap-1">
                         <p className="text-xs text-muted-foreground">Regiões de atendimento</p>
@@ -208,11 +204,7 @@ export default function TutoriaSection({
 
     return (
         <Section titulo="Sobre a tutoria">
-            {erro && (
-                <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                    {erro}
-                </p>
-            )}
+            {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} duration={5000} />}
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
                 <div className="flex flex-col gap-1">
                     <p className="text-xs text-muted-foreground">Modalidade</p>

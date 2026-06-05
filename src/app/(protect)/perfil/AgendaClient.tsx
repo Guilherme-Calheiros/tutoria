@@ -3,6 +3,7 @@
 import { salvarAgenda } from "@/action/salvarAgenda"
 import { useState, useRef, useMemo } from "react"
 import { FaAngleLeft, FaAngleRight, FaRegClock } from "react-icons/fa"
+import Mensagem from "@/app/components/Mensagem"
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
 
@@ -105,7 +106,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
     const [arrastando, setArrastando] = useState(false)
     const [modoArrasto, setModoArrasto] = useState<"marcar" | "desmarcar">("marcar")
     const [salvando, setSalvando] = useState(false)
-    const [erro, setErro] = useState<string | null>(null)
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null)
     const [diaMobile, setDiaMobile] = useState(0)
     const touchRef = useRef({ startX: 0 })
 
@@ -159,18 +160,18 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
  
     async function handleSalvar() {
         setSalvando(true)
-        setErro(null)
+        setMensagem(null)
         const result = await salvarAgenda(celulasParaBlocos(celulas))
   
         setSalvando(false)
   
         const validationErrors = (result as any).validationErrors
         if (validationErrors) {
-            setErro(validationErrors.map((e: { message: string }) => e.message).join(". "))
+            setMensagem({ type: "erro", text: validationErrors.map((e: { message: string }) => e.message).join(". ") })
             return
         }
         if (result.error) {
-            setErro(result.error)
+            setMensagem({ type: "erro", text: result.error })
             return
         }
     }
@@ -247,7 +248,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                         className={`cursor-pointer rounded-full transition-all duration-300 ${
                             i === diaMobile
                                 ? "w-6 h-1.5 bg-primary"
-                                : "w-1.5 h-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
+                                : "w-2 h-2 bg-muted-foreground/60 hover:bg-muted-foreground/80"
                         }`}
                         aria-label={`Ir para ${DIAS[i]}`}
                     />
@@ -279,11 +280,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                 )}
             </div>
 
-            {erro && (
-                <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 mb-4">
-                    {erro}
-                </p>
-            )}
+            {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} className="mb-4" />}
 
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">

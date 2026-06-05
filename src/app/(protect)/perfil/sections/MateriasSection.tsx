@@ -5,6 +5,7 @@ import { FaPencilAlt } from "react-icons/fa"
 import { salvarPerfil } from "@/action/salvarPerfil"
 import Section from "@/app/components/Section"
 import TagSelector from "@/app/components/TagSelector"
+import Mensagem from "@/app/components/Mensagem"
 
 type Materia = { id: number; nome: string }
 
@@ -16,9 +17,8 @@ type MateriasSectionProps = {
 
 export default function MateriasSection({ userId, materiasIds, todasMaterias }: MateriasSectionProps) {
     const [editando, setEditando] = useState(false)
-    const [hover, setHover] = useState(false)
     const [selectedIds, setSelectedIds] = useState<number[]>(materiasIds)
-    const [error, setError] = useState<string | null>(null)
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null)
 
     function toggleMateria(id: number) {
         setSelectedIds(prev =>
@@ -27,44 +27,43 @@ export default function MateriasSection({ userId, materiasIds, todasMaterias }: 
     }
 
     async function handleSave() {
-        setError(null)
+        setMensagem(null)
         const result = await salvarPerfil(userId, { materias: selectedIds })
         if (result?.validationErrors) {
-            setError(result.validationErrors.map(e => e.message).join(". "))
+            setMensagem({ type: "erro", text: result.validationErrors.map(e => e.message).join(". ") })
             return
         }
         if (result?.error) {
-            setError(result.error)
+            setMensagem({ type: "erro", text: result.error })
             return
         }
         setEditando(false)
+        setMensagem({ type: "sucesso", text: "Matérias salvas com sucesso" })
         window.dispatchEvent(new CustomEvent("refreshNotificacoes"))
     }
 
     function handleCancel() {
         setSelectedIds(materiasIds)
         setEditando(false)
-        setError(null)
+        setMensagem(null)
     }
 
     if (!editando) {
         return (
             <Section
                 titulo="Matérias"
-                onMouseEnter={() => setHover(true)}
-                onMouseLeave={() => setHover(false)}
                 action={
-                    hover && (
-                        <button
-                            type="button"
-                            onClick={() => setEditando(true)}
-                            className="text-muted-foreground hover:text-primary transition-colors"
-                        >
-                            <FaPencilAlt className="w-3.5 h-3.5" />
-                        </button>
-                    )
+                    <button
+                        type="button"
+                        onClick={() => setEditando(true)}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                        aria-label="Editar Matérias"
+                    >
+                        <FaPencilAlt className="w-3.5 h-3.5" />
+                    </button>
                 }
             >
+                {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} duration={4000} />}
                 <div className="flex flex-wrap gap-2">
                     {todasMaterias
                         .filter((m) => materiasIds.includes(m.id))
@@ -81,7 +80,7 @@ export default function MateriasSection({ userId, materiasIds, todasMaterias }: 
 
     return (
         <Section titulo="Matérias">
-            {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+            {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} className="mb-2" duration={4000} />}
             <TagSelector
                 items={todasMaterias}
                 selectedIds={selectedIds}
