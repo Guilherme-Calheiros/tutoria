@@ -3,10 +3,11 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@/lib/auth-client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { FormResetarSenhaSchema, schemaResetarSenha } from "@/schemas/resetar-senha";
 import PasswordInput from "@/app/components/PasswordInput";
+import Mensagem from "@/app/components/Mensagem";
 
 type ResetPasswordFormProps = {
     token: string
@@ -14,19 +15,13 @@ type ResetPasswordFormProps = {
 }
 
 export function ResetPasswordForm({ token, router }: ResetPasswordFormProps) {
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!error) return;
-        const t = setTimeout(() => setError(null), 5000);
-        return () => clearTimeout(t);
-    }, [error]);
+    const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null);
     const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormResetarSenhaSchema>({
         resolver: zodResolver(schemaResetarSenha)
     });
 
     const handleFormSubmit = async (data: FormResetarSenhaSchema) => {
-        setError(null);
+        setMensagem(null);
 
         const { error: authError } = await authClient.resetPassword({
             newPassword: data.novaSenha,
@@ -34,7 +29,7 @@ export function ResetPasswordForm({ token, router }: ResetPasswordFormProps) {
         });
 
         if (authError) {
-            setError(authError.message ?? "Ocorreu um erro ao redefinir a senha.");
+            setMensagem({ type: "erro", text: authError.message ?? "Ocorreu um erro ao redefinir a senha." });
             return;
         }
 
@@ -59,11 +54,7 @@ export function ResetPasswordForm({ token, router }: ResetPasswordFormProps) {
                         {errors.novaSenha && <p className="text-red-500 text-sm mt-1">{errors.novaSenha.message}</p>}
                     </div>
 
-                    {error && (
-                        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
-                            {error}
-                        </p>
-                    )}
+                    {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} />}
 
                     <button type="submit" className="bg-primary p-2 font-semibold rounded-lg text-primary-foreground hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 mt-4">
                         {isSubmitting ? "Redefinindo..." : "Redefinir senha"}
