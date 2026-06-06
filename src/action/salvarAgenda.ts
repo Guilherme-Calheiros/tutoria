@@ -23,7 +23,12 @@ export async function salvarAgenda(blocos: z.infer<typeof schemaAgenda>) {
     if (session.user.role !== "tutor") return { error: "Não autorizado" }
 
     const parsed = schemaAgenda.safeParse(blocos)
-    if (!parsed.success) return { error: "Dados inválidos" }
+    if (!parsed.success) {
+        return { validationErrors: parsed.error.issues.map((issue) => ({
+            path: issue.path.join("."),
+            message: issue.message
+        }))}
+    }
 
     const tutorId = session.user.id
 

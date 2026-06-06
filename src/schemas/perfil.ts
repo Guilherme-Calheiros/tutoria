@@ -2,9 +2,9 @@ import { z } from "zod"
 
 export const schemaPerfil = z.object({
     nome: z.string().min(2, "Nome deve conter pelo menos 2 caracteres").optional(),
-    telefone: z.string().optional(),
+    telefone: z.string().min(10, "Celular deve ter pelo menos 10 dígitos").optional(),
     image: z.string().optional(),
-    descricao: z.string().min(10, "Descrição deve conter pelo menos 10 caracteres").optional(),
+    descricao: z.string().min(10, "Descrição deve conter pelo menos 10 caracteres").nullable().optional(),
     modalidade: z.enum(["ead", "presencial", "ambos"]).optional(),
     ensinaTurma: z.boolean().optional(),
     ensinaPrivado: z.boolean().optional(),

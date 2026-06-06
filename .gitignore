@@ -42,3 +42,7 @@ next-env.d.ts
 
 #context
 PROMPT.md
+DESIGN.md
+PRODUCT.md
+CONTRIBUTING.md
+.impeccable*

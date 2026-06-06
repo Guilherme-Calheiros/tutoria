@@ -32,7 +32,7 @@ export default function VerificarEmail({ url, name }: VerificarEmailProps) {
             <Button
               href={url}
               style={{
-                backgroundColor: "#7F77DD",
+                backgroundColor: "#6c3ee8",
                 color: "#ffffff",
                 padding: "12px 24px",
                 borderRadius: "8px",

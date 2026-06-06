@@ -17,7 +17,8 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((props, r
             <button
                 type="button"
                 onClick={() => setShow(!show)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-1 top-1/2 -translate-y-1/2 min-w-11 min-h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
                 {show ? <FaEye /> : <FaEyeSlash />}
             </button>

@@ -1,0 +1,1 @@
+ALTER TABLE "tutor" ADD COLUMN "onboarding_completo" boolean DEFAULT false NOT NULL;

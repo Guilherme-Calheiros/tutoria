@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { deleteArquivo } from "@/lib/r2/r2";
 
-export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
+export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>, completarOnboarding?: boolean){
     const session = await auth.api.getSession({
         headers: await headers()
     });
@@ -33,7 +33,10 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
     if(!parsed.success){
         return {
             success: false,
-            error: parsed.error.message
+            validationErrors: parsed.error.issues.map((issue) => ({
+                path: issue.path.join("."),
+                message: issue.message
+            }))
         };
     }
 
@@ -54,7 +57,7 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
 
     const atualizacoesUser: Record<string, unknown> = {}
     if (nome !== undefined) atualizacoesUser.name = nome
-    if (telefone !== undefined) atualizacoesUser.telefone = telefone
+    if (telefone !== undefined) atualizacoesUser.telefone = telefone || null
     if (image) {
         const [usuarioAtual] = await db.select({ image: user.image }).from(user).where(eq(user.id, id))
         if (usuarioAtual?.image && usuarioAtual.image.startsWith(process.env.R2_PUBLIC_URL!)) {
@@ -141,6 +144,10 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
             }
         }
 
+        if (modalidade === "ead") {
+            await db.delete(enderecoAtendimento).where(eq(enderecoAtendimento.tutorId, id))
+        }
+
         if (enderecos !== undefined){
             const enderecosAtuais = await db
                 .select()
@@ -179,9 +186,42 @@ export async function salvarPerfil(id: string, data: Partial<SchemaPerfil>){
                 }
             }
         }
+
+        const tutorAtual = await db.query.tutor.findFirst({
+            where: eq(tutor.userId, id),
+            with: {
+                user: true,
+                materias: true,
+                niveisEnsino: true,
+                enderecos: true,
+            },
+        })
+
+        if (tutorAtual) {
+            const completo = !!(
+                tutorAtual.descricao &&
+                tutorAtual.user.telefone &&
+                tutorAtual.materias.length > 0 &&
+                tutorAtual.niveisEnsino.length > 0 &&
+                (tutorAtual.modalidade === "ead" || (tutorAtual.enderecos?.length ?? 0) > 0)
+            )
+
+            if (completo !== tutorAtual.perfilCompleto) {
+                await db.update(tutor)
+                    .set({ perfilCompleto: completo })
+                    .where(eq(tutor.userId, id))
+            }
+        }
+    }
+
+    if (completarOnboarding) {
+        await db.update(tutor)
+            .set({ onboardingCompleto: true })
+            .where(eq(tutor.userId, id))
     }
 
     revalidatePath("/perfil")
+    revalidatePath("/api/notificacoes")
     return {success: true}
     
 }

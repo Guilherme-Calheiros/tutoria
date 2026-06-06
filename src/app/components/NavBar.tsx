@@ -1,34 +1,49 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSession, authClient } from "@/lib/auth-client";
 import { useRouter, usePathname } from "next/navigation";
-import { FaChevronDown, FaSignOutAlt } from "react-icons/fa";
+import { FaBell, FaChevronDown, FaSignOutAlt } from "react-icons/fa";
+import UserAvatar from "@/app/components/UserAvatar";
+import Dropdown from "@/app/components/Dropdown";
 
 export default function NavBar() {
-    const { data: session, isPending } = useSession()
+    const { data: session, isPending, refetch } = useSession()
     const [dropdownAberto, setDropdownAberto] = useState(false)
-    const dropdownRef = useRef<HTMLDivElement>(null)
+    const [notifAberto, setNotifAberto] = useState(false)
+    const [notificacoes, setNotificacoes] = useState<{ id: string; tipo: string; mensagem: string; link: string }[]>([])
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setDropdownAberto(false)
+        let mounted = true
+
+        function fetchNotificacoes() {
+            if (session) {
+                fetch("/api/notificacoes")
+                    .then(r => r.json())
+                    .then(d => { if (mounted) setNotificacoes(d.notificacoes ?? []) })
+                    .catch(() => { if (mounted) setNotificacoes([]) })
+            } else {
+                if (mounted) setNotificacoes([])
             }
         }
-        function handleEscape(event: KeyboardEvent) {
-            if (event.key === "Escape") setDropdownAberto(false)
+
+        function handleRefreshAvatar() {
+            refetch()
         }
-        document.addEventListener("mousedown", handleClickOutside)
-        document.addEventListener("keydown", handleEscape)
+
+        fetchNotificacoes()
+
+        window.addEventListener("refreshNotificacoes", fetchNotificacoes)
+        window.addEventListener("refreshAvatar", handleRefreshAvatar)
         return () => {
-            document.removeEventListener("mousedown", handleClickOutside)
-            document.removeEventListener("keydown", handleEscape)
+            mounted = false
+            window.removeEventListener("refreshNotificacoes", fetchNotificacoes)
+            window.removeEventListener("refreshAvatar", handleRefreshAvatar)
         }
-    }, [])
+    }, [session, refetch])
 
     async function handleSignOut(){
         setDropdownAberto(false)
@@ -42,76 +57,118 @@ export default function NavBar() {
     }
 
     if (isPending) return (
-        <div className="w-full border-b border-border p-4 flex items-center justify-between">
+        <nav className="sticky top-0 z-20 w-full border-b border-border bg-background p-4 flex items-center justify-between">
             <span className="text-3xl font-semibold tracking-tight text-primary">tutoria</span>
-        </div>
+        </nav>
     )
 
     return (
-        <div className="w-full border-b border-border p-4 flex items-center justify-between">
+        <nav className="sticky top-0 z-20 w-full border-b border-border bg-background p-4 flex items-center justify-between">
             <Link href="/" className="text-3xl font-semibold tracking-tight text-primary">
                 tutoria
             </Link>
 
-            {session && (
-                <div className="relative" ref={dropdownRef}>
-                    <button
-                        onClick={() => setDropdownAberto(!dropdownAberto)}
-                        aria-expanded={dropdownAberto}
-                        aria-haspopup="menu"
-                        className="flex items-center gap-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1 transition-colors hover:bg-muted"
+            {!session && (
+                <div className="flex items-center gap-3">
+                    <Link
+                        href="/login"
+                        className="inline-flex items-center min-h-11 px-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
                     >
-                        {session.user.image ? (
-                            <div className="w-7 h-7 rounded-full overflow-hidden bg-secondary flex items-center justify-center shrink-0">
-                                <img src={session.user.image} alt="" className="w-full h-full object-cover"/>
-                            </div>
-                        ) : (
-                            <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0 text-xs font-medium text-primary">
-                                {session.user.name.charAt(0).toUpperCase()}
-                            </div>
-                        )}
-                        <span className="hidden sm:inline">{session.user.name}</span>
-                        <FaChevronDown
-                            className={`text-xs text-muted-foreground transition-transform duration-200 ${dropdownAberto ? "rotate-180" : ""}`}
-                        />
-                    </button>
-
-                    <div
-                        role="menu"
-                        className={`absolute right-0 mt-2 w-48 border border-border rounded-xl bg-background shadow-sm overflow-hidden transition-all duration-200 ease-out origin-top-right ${
-                            dropdownAberto
-                                ? "opacity-100 scale-100 visible"
-                                : "opacity-0 scale-95 invisible pointer-events-none"
-                        }`}
+                        Entrar
+                    </Link>
+                    <Link
+                        href="/cadastro"
+                        className="text-sm font-medium bg-primary text-primary-foreground rounded-lg px-4 py-2 min-h-11 flex items-center hover:opacity-90 transition-opacity"
                     >
-                        <div className="px-4 py-2 border-b border-border">
-                            <p className="text-xs text-muted-foreground">
-                                {session.user.role === "tutor" ? "Tutor" : "Aluno"}
-                            </p>
-                        </div>
-                        <Link
-                            href="/perfil"
-                            role="menuitem"
-                            onClick={() => setDropdownAberto(false)}
-                            className={`block px-4 py-2.5 text-sm transition-colors ${
-                                pathname === "/perfil"
-                                    ? "bg-secondary text-primary font-medium"
-                                    : "text-foreground hover:bg-muted"
-                            }`}
-                        >
-                            Meu perfil
-                        </Link>
-                        <button
-                            role="menuitem"
-                            onClick={handleSignOut}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-muted transition-colors"
-                        >
-                            <FaSignOutAlt className="text-xs" />
-                            Sair
-                        </button>
-                    </div>
+                        Cadastrar
+                    </Link>
                 </div>
             )}
-        </div>
+
+            {session && (
+                <div className="flex items-center gap-3">
+                    <Dropdown
+                        trigger={
+                            <button
+                                onClick={() => { setNotifAberto(!notifAberto); setDropdownAberto(false) }}
+                                aria-label="Notificações"
+                                aria-expanded={notifAberto}
+                                className="relative min-w-11 min-h-11 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                            >
+                                <FaBell className="text-lg" />
+                                <span
+                                    className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full transition-opacity duration-200 ${notificacoes.length > 0 ? 'opacity-100 bg-accent' : 'opacity-0'}`}
+                                />
+                            </button>
+                        }
+                        open={notifAberto}
+                        onClose={() => setNotifAberto(false)}
+                    >
+                        <h3 className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notificações</h3>
+                        {notificacoes.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-muted-foreground">Nenhuma notificação</div>
+                        ) : (
+                            notificacoes.map(n => (
+                                <Link
+                                    key={n.id}
+                                    href={n.link}
+                                    onClick={() => { setNotifAberto(false); setDropdownAberto(false) }}
+                                    className="block px-4 py-3 text-sm text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none transition-colors border-b border-border last:border-b-0"
+                                >
+                                    {n.mensagem}
+                                </Link>
+                            ))
+                        )}
+                    </Dropdown>
+
+                    <Dropdown
+                        trigger={
+                            <button
+                                onClick={() => { setDropdownAberto(!dropdownAberto); setNotifAberto(false) }}
+                                aria-expanded={dropdownAberto}
+                                aria-haspopup="menu"
+                                className="flex items-center gap-2 min-h-11 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg px-2 py-1 transition-colors hover:bg-muted"
+                            >
+                                <UserAvatar src={session.user.image} name={session.user.name} alt={`Foto de ${session.user.name}`} size="sm" />
+                                <span className="hidden sm:inline">{session.user.name}</span>
+                                <FaChevronDown
+                                    className={`text-xs text-muted-foreground transition-transform duration-200 ${dropdownAberto ? "rotate-180" : ""}`}
+                                />
+                            </button>
+                        }
+                        open={dropdownAberto}
+                        onClose={() => setDropdownAberto(false)}
+                    >
+                        <div role="menu">
+                            <div className="px-4 py-2 border-b border-border">
+                                <p className="text-xs text-muted-foreground">
+                                    {session.user.role === "tutor" ? "Tutor" : "Aluno"}
+                                </p>
+                            </div>
+                            <Link
+                                href="/perfil"
+                                role="menuitem"
+                                onClick={() => setDropdownAberto(false)}
+                                className={`block px-4 py-2.5 text-sm transition-colors ${
+                                    pathname === "/perfil"
+                                        ? "bg-secondary text-primary font-medium"
+                                        : "text-foreground hover:bg-muted"
+                                }`}
+                            >
+                                Meu perfil
+                            </Link>
+                            <button
+                                role="menuitem"
+                                onClick={handleSignOut}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-destructive hover:bg-muted transition-colors"
+                            >
+                                <FaSignOutAlt className="text-xs" />
+                                Sair
+                            </button>
+                        </div>
+                    </Dropdown>
+                </div>
+            )}
+        </nav>
     )
 }

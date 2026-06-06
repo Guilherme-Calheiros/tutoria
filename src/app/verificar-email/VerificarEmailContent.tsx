@@ -5,12 +5,13 @@ import { useState } from "react"
 import { authClient } from "@/lib/auth-client"
 import Link from "next/link"
 import { FaEnvelope } from "react-icons/fa"
+import Mensagem from "@/app/components/Mensagem"
 
 
 export default function VerificarEmailContent() {
   const searchParams = useSearchParams()
   const email = searchParams.get("email") ?? ""
-  const [enviado, setEnviado] = useState(false)
+  const [mensagem, setMensagem] = useState<{ type: "sucesso" | "erro"; text: string } | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleReenviar() {
@@ -19,12 +20,12 @@ export default function VerificarEmailContent() {
       email,
       callbackURL: "/"
     })
-    setEnviado(true)
+    setMensagem({ type: "sucesso", text: "E-mail reenviado com sucesso!" })
     setLoading(false)
   }
 
   return (
-      <div className="w-full max-w-md border border-border rounded-2xl p-8 bg-background shadow text-center flex flex-col items-center gap-4">
+      <div className="w-full max-w-md border border-border rounded-xl p-8 bg-background text-center flex flex-col items-center gap-4">
 
         <FaEnvelope className="text-primary w-16 h-16" />
 
@@ -38,10 +39,8 @@ export default function VerificarEmailContent() {
           Clique no link para ativar sua conta.
         </p>
 
-        {enviado ? (
-          <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 w-full">
-            E-mail reenviado com sucesso!
-          </p>
+        {mensagem ? (
+          <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} />
         ) : (
           <p className="text-muted-foreground text-xs">
             Não recebeu?{" "}
