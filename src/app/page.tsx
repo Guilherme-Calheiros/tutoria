@@ -1,23 +1,17 @@
+import { db } from "@/db"
+import { materia } from "@/lib/db/schema"
 import Link from "next/link"
 import { FaSearch, FaUserPlus, FaGraduationCap, FaArrowRight } from "react-icons/fa"
 
-const materias = [
-  { nome: "Matemática", slug: "matematica" },
-  { nome: "Português", slug: "portugues" },
-  { nome: "Inglês", slug: "ingles" },
-  { nome: "Física", slug: "fisica" },
-  { nome: "Química", slug: "quimica" },
-  { nome: "Biologia", slug: "biologia" },
-  { nome: "História", slug: "historia" },
-  { nome: "Redação", slug: "redacao" },
-]
+export default async function Home() {
 
-export default function Home() {
+  const todasMaterias = await db.select().from(materia)
+
   return (
     <>
       <HeroSection />
       <ComoFuncionaSection />
-      <MateriasSection />
+      <MateriasSection todasMaterias={todasMaterias} />
       <ParaTutoresSection />
       <CTAFinalSection />
       <FooterSection />
@@ -98,7 +92,7 @@ function ComoFuncionaSection() {
   )
 }
 
-function MateriasSection() {
+function MateriasSection({ todasMaterias }: { todasMaterias: { id: number; nome: string; }[] }) {
   return (
     <section>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
@@ -106,10 +100,10 @@ function MateriasSection() {
           Matérias populares
         </h2>
         <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {materias.map((m) => (
+          {todasMaterias.map((m) => (
             <Link
-              key={m.slug}
-              href={`/inicio?materia=${m.slug}`}
+              key={m.id}
+              href={`/buscar?materias=${m.id}`}
               className="flex items-center justify-center rounded-xl bg-surface border border-border px-4 py-6 sm:py-8 text-sm sm:text-base font-medium text-ink hover:border-primary/30 hover:bg-primary/3 hover:-translate-y-0.5 hover:shadow-md transition-all"
             >
               {m.nome}
@@ -215,7 +209,7 @@ function FooterSection() {
               <Link href="/cadastro" className="text-sm hover:text-white transition-colors">
                 Encontrar tutor
               </Link>
-              <Link href="/inicio" className="text-sm hover:text-white transition-colors">
+              <Link href="/buscar" className="text-sm hover:text-white transition-colors">
                 Matérias disponíveis
               </Link>
             </div>
