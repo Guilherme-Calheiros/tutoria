@@ -230,7 +230,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                                         onMouseDown={() => handleMouseDown(key)}
                                         onMouseEnter={() => handleMouseEnter(key)}
                                     >
-                                        {String(hora).padStart(2, "0")}h
+                                        {String(hora).padStart(2, "0")}:00
                                     </div>
                                 )
                             })}
@@ -267,7 +267,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                             {ranges.map((r, i) => (
                                 <span key={i} className="inline-flex items-center gap-1 bg-secondary text-muted-foreground px-2 py-0.5 rounded-md font-medium tabular-nums">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                                    {String(r.inicio).padStart(2, "0")}h–{String(r.fim).padStart(2, "0")}h
+                                    {String(r.inicio).padStart(2, "0")}:00–{String(r.fim).padStart(2, "0")}:00
                                 </span>
                             ))}
                         </div>
