@@ -57,16 +57,44 @@ export default function NavBar() {
     }
 
     if (isPending) return (
-        <nav className="sticky top-0 z-20 w-full border-b border-border bg-background p-4 flex items-center justify-between">
+        <nav className="sticky top-0 z-30 w-full border-b border-border bg-background p-4 flex items-center justify-between">
             <span className="text-3xl font-semibold tracking-tight text-primary">tutoria</span>
         </nav>
     )
 
+    const navLinks = [
+        { href: "/inicio", label: "Início" },
+        { href: "/buscar", label: "Tutores" },
+    ]
+
     return (
-        <nav className="sticky top-0 z-20 w-full border-b border-border bg-background p-4 flex items-center justify-between">
-            <Link href="/" className="text-3xl font-semibold tracking-tight text-primary">
-                tutoria
-            </Link>
+        <nav className="sticky top-0 z-30 w-full border-b border-border bg-background p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+                <Link href={session ? "/inicio" : "/"} className="text-3xl font-semibold tracking-tight text-primary shrink-0">
+                    tutoria
+                </Link>
+
+                {session && (
+                    <div className="hidden sm:flex items-center gap-1">
+                        {navLinks.map((link) => {
+                            const isActive = pathname === link.href || pathname.startsWith(link.href + "/")
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`px-3 py-2 text-sm font-medium transition-colors ${
+                                        isActive
+                                            ? "text-primary mb-1 border-b-2 border-primary"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    {link.label}
+                                </Link>
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
 
             {!session && (
                 <div className="flex items-center gap-3">
