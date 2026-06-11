@@ -1,24 +1,25 @@
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-
-
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
+import { db } from "@/db"
+import { materia } from "@/lib/db/schema"
+import { buscarTutores } from "@/lib/buscar-tutores"
+import InicioClient from "./InicioClient"
 
 export default async function InicioPage() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) redirect("/login")
 
-    const session = await auth.api.getSession({
-        headers: await headers()
-    });
+  const [todasMaterias, featured] = await Promise.all([
+    db.select({ id: materia.id, nome: materia.nome }).from(materia),
+    buscarTutores({ page: 1, pageSize: 6 }),
+  ])
 
-    if (!session) {
-        redirect("/login")
-    }
-
-    return (
-        <main>
-            <h1>Olá, {session.user.name}!</h1>
-            <Link href={`/perfil`}>Editar Perfil</Link>
-        </main>
-    )
+  return (
+    <InicioClient
+      nome={session.user.name}
+      materias={todasMaterias}
+      tutores={featured.tutores}
+    />
+  )
 }
