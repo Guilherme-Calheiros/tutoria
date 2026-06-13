@@ -106,6 +106,27 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
                             {errors.confirmarSenha && <p id="erro-confirmarSenha" role="alert" className="text-destructive text-sm mt-1">{errors.confirmarSenha.message}</p>}
                         </div>
                         <input type="hidden" id="role" value={role} {...register('role')} />
+                        <div className="flex items-start gap-2 mt-2">
+                            <input
+                                id="termosAceitos"
+                                type="checkbox"
+                                aria-invalid={!!errors.termosAceitos}
+                                aria-describedby={errors.termosAceitos ? "erro-termos" : undefined}
+                                {...register('termosAceitos')}
+                                className="mt-1 size-4 accent-primary rounded border-border"
+                            />
+                            <label htmlFor="termosAceitos" className="text-sm text-muted-foreground leading-relaxed">
+                                Aceito os{" "}
+                                <Link href="/termos" target="_blank" className="text-primary underline hover:no-underline">
+                                    Termos de Uso
+                                </Link>{" "}
+                                e a{" "}
+                                <Link href="/privacidade" target="_blank" className="text-primary underline hover:no-underline">
+                                    Política de Privacidade
+                                </Link>
+                            </label>
+                        </div>
+                        {errors.termosAceitos && <p id="erro-termos" role="alert" className="text-destructive text-sm mt-1">{errors.termosAceitos.message}</p>}
                         {mensagem && <Mensagem type={mensagem.type} message={mensagem.text} onClose={() => setMensagem(null)} />}
                         <button type="submit" disabled={isSubmitting} className="bg-primary p-2 min-h-11 font-semibold rounded-lg text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4 transition-colors">
                             {isSubmitting ? "Criando..." : "Criar conta"}

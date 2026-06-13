@@ -7,7 +7,10 @@ export const schemaCadastro = z.object({
     email: z.email("Email inválido"),
     senha: z.string().min(8, "A senha deve conter pelo menos 8 caracteres"),
     confirmarSenha: z.string().min(8, "A senha deve conter pelo menos 8 caracteres"),
-    role: z.enum(['tutor', 'aluno'])
+    role: z.enum(['tutor', 'aluno']),
+    termosAceitos: z.boolean().refine(val => val === true, {
+        message: "Você precisa aceitar os Termos de Uso e a Política de Privacidade"
+    })
 }).superRefine((data, ctx) => {
     if (data.senha !== data.confirmarSenha) {
         ctx.addIssue({
