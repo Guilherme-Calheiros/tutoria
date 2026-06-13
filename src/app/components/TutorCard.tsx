@@ -33,12 +33,12 @@ export default function TutorCard({ tutor }: TutorCardProps) {
     return (
         <div className="bg-surface border border-border rounded-lg p-5 sm:p-6 flex flex-col gap-3 transition-shadow hover:shadow-sm">
             <div className="flex items-start gap-3">
-                <Link href={`/perfil?tutor=${tutor.userId}`} className="shrink-0">
+                <Link href={`/tutor/${tutor.userId}`} className="shrink-0">
                     <UserAvatar name={tutor.nome} src={tutor.image} size="md" />
                 </Link>
                 <div className="min-w-0 flex-1">
                     <Link
-                        href={`/perfil?tutor=${tutor.userId}`}
+                        href={`/tutor/${tutor.userId}`}
                         className="text-base font-semibold text-foreground hover:text-primary transition-colors"
                     >
                         {tutor.nome}
@@ -102,7 +102,7 @@ export default function TutorCard({ tutor }: TutorCardProps) {
 
             <div className="flex justify-end pt-1">
                 <Link
-                    href={`/perfil?tutor=${tutor.userId}`}
+                    href={`/tutor/${tutor.userId}`}
                     className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
                     Ver perfil
