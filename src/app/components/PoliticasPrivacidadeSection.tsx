@@ -9,7 +9,7 @@ export default function PoliticasPrivacidadeSection() {
             <ul className="flex flex-col gap-2">
                 <li>
                     <a
-                        href="#"
+                        href="/privacidade"
                         className="text-sm text-primary hover:underline transition-colors"
                     >
                         Política de Privacidade
@@ -17,7 +17,7 @@ export default function PoliticasPrivacidadeSection() {
                 </li>
                 <li>
                     <a
-                        href="#"
+                        href="/termos"
                         className="text-sm text-primary hover:underline transition-colors"
                     >
                         Termos de Uso
