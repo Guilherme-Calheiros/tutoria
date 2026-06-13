@@ -118,7 +118,7 @@ export default function FormCadastro({ tipo }: FormCadastroProps) {
                             type="button"
                             onClick={() => authClient.signIn.social({
                                 provider: "google",
-                                callbackURL: "/",
+                                callbackURL: "/inicio",
                                 ...(role === "tutor" && { newUserCallbackURL: "/api/auth/complete-tutor-signup" })
                             })}
                             className="flex items-center justify-center gap-2 min-h-11 border border-border rounded-lg px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
