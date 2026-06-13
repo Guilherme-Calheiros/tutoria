@@ -35,7 +35,7 @@ export default function LoginPage() {
             return
         }
 
-        router.push(`/`)
+        router.push(`/inicio`)
     };
 
     return (
@@ -80,7 +80,7 @@ export default function LoginPage() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/" })}
+                            onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/inicio" })}
                             className="flex items-center justify-center gap-2 min-h-11 border border-border rounded-lg px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
                         >
                             <FaGoogle />

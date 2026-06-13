@@ -4,99 +4,10 @@ import { salvarAgenda } from "@/action/salvarAgenda"
 import { useState, useRef, useMemo } from "react"
 import { FaAngleLeft, FaAngleRight, FaRegClock } from "react-icons/fa"
 import Mensagem from "@/app/components/Mensagem"
-
-const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-
-const GRADE_PARA_DB = [1, 2, 3, 4, 5, 6, 0]
-
-const HORAS = Array.from({ length: 18 }, (_, i) => i + 6)
-
-const LINHAS_GRID = (() => {
-    const linhas: number[][] = []
-    for (let i = 0; i < HORAS.length; i += 6) {
-        linhas.push(HORAS.slice(i, i + 6))
-    }
-    return linhas
-})()
-
-type BlocoDisponibilidade = {
-    diaDaSemana: number,
-    startTime: string,
-    endTime: string
-}
+import { DIAS, LINHAS_GRID, BlocoDisponibilidade, blocosParaCelulas, celulasParaBlocos, rangesDoDia, horasNoDia } from "@/lib/schedule-utils"
 
 interface AgendaClientProps {
     blocosSalvos: BlocoDisponibilidade[]
-}
-
-function blocosParaCelulas(blocos: BlocoDisponibilidade[]): Set<string> {
-    const celulas = new Set<string>()
-    for (const bloco of blocos) {
-        const gradeIdx = GRADE_PARA_DB.indexOf(bloco.diaDaSemana)
-        if (gradeIdx === -1) continue
-        const horaInicio = parseInt(bloco.startTime.split(":")[0])
-        const horaFim = parseInt(bloco.endTime.split(":")[0])
-        for (let h = horaInicio; h < horaFim; h++) {
-            celulas.add(`${gradeIdx}-${h}`)
-        }
-    }
-    return celulas
-}
-
-function celulasParaBlocos(celulas: Set<string>): BlocoDisponibilidade[] {
-    const blocos: BlocoDisponibilidade[] = []
-    
-    for(let diaIndex = 0; diaIndex < 7; diaIndex++){
-        const horasDia = HORAS.filter(hora => celulas.has(`${diaIndex}-${hora}`)).sort((a, b) => a - b)
-        if (horasDia.length === 0) continue
-
-        let inicioBloco = horasDia[0]
-        let horaAnterior = horasDia[0]
-
-        for(let i = 1; i <= horasDia.length; i++){
-            const hora = horasDia[i]
-            const consecutiva = hora === horaAnterior + 1
-
-            if(!consecutiva) {
-                blocos.push({
-                    diaDaSemana: GRADE_PARA_DB[diaIndex],
-                    startTime: `${String(inicioBloco).padStart(2, "0")}:00`,
-                    endTime: `${String(horaAnterior + 1).padStart(2, "0")}:00`,
-                })
-
-                if (hora !== undefined) {
-                    inicioBloco = hora
-                    horaAnterior = hora
-                }
-            } else {
-                horaAnterior = hora
-            }
-        }
-    }
-
-    return blocos
-}
-
-function rangesDoDia(celulas: Set<string>, diaIndex: number): { inicio: number; fim: number }[] {
-    const ranges: { inicio: number; fim: number }[] = []
-    let i = 0
-    while (i < HORAS.length) {
-        const hora = HORAS[i]
-        if (celulas.has(`${diaIndex}-${hora}`)) {
-            const inicio = hora
-            while (i < HORAS.length && celulas.has(`${diaIndex}-${HORAS[i]}`)) {
-                i++
-            }
-            ranges.push({ inicio, fim: HORAS[i - 1] + 1 })
-        } else {
-            i++
-        }
-    }
-    return ranges
-}
-
-function horasNoDia(celulas: Set<string>, diaIndex: number): number {
-    return HORAS.filter(h => celulas.has(`${diaIndex}-${h}`)).length
 }
 
 export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
@@ -230,7 +141,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                                         onMouseDown={() => handleMouseDown(key)}
                                         onMouseEnter={() => handleMouseEnter(key)}
                                     >
-                                        {String(hora).padStart(2, "0")}h
+                                        {String(hora).padStart(2, "0")}:00
                                     </div>
                                 )
                             })}
@@ -267,7 +178,7 @@ export default function AgendaClient({ blocosSalvos }: AgendaClientProps) {
                             {ranges.map((r, i) => (
                                 <span key={i} className="inline-flex items-center gap-1 bg-secondary text-muted-foreground px-2 py-0.5 rounded-md font-medium tabular-nums">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                                    {String(r.inicio).padStart(2, "0")}h–{String(r.fim).padStart(2, "0")}h
+                                    {String(r.inicio).padStart(2, "0")}:00–{String(r.fim).padStart(2, "0")}:00
                                 </span>
                             ))}
                         </div>
