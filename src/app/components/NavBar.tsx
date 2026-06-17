@@ -168,7 +168,7 @@ export default function NavBar() {
                         onClose={() => setDropdownAberto(false)}
                     >
                         <div role="menu">
-                            <div className="px-4 py-2 border-b border-border">
+                            <div className="px-4 py-2 border-b border-border hidden sm:block">
                                 <p className="text-xs text-muted-foreground">
                                     {session.user.role === "tutor" ? "Tutor" : "Aluno"}
                                 </p>
@@ -185,6 +185,26 @@ export default function NavBar() {
                             >
                                 Meu perfil
                             </Link>
+                            <div className="px-4 border-b border-border sm:hidden">
+                                {navLinks.map((link) => {
+                                    const isActive = pathname === link.href || pathname.startsWith(link.href + "/")
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            role="menuitem"
+                                            onClick={() => setDropdownAberto(false)}
+                                            className={`block px-0 py-2.5 text-sm transition-colors ${
+                                                isActive
+                                                    ? "text-primary font-medium"
+                                                    : "text-foreground hover:text-muted-foreground"
+                                            }`}
+                                        >
+                                            {link.label}
+                                        </Link>
+                                    )
+                                })}
+                            </div>
                             <button
                                 role="menuitem"
                                 onClick={handleSignOut}
