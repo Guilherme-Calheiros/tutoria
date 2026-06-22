@@ -1,5 +1,6 @@
 import { db } from "@/db"
 import { materia } from "@/lib/db/schema"
+import Image from "next/image"
 import Link from "next/link"
 import { FaSearch, FaUserPlus, FaGraduationCap, FaArrowRight } from "react-icons/fa"
 
@@ -22,27 +23,41 @@ export default async function Home() {
 function HeroSection() {
   return (
     <section className="border-b border-border">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36 text-center">
-        <h1 className="text-[clamp(2.25rem,5vw,4rem)] font-bold leading-[1.1] text-ink text-balance">
-          Encontre o tutor ideal para você
-        </h1>
-        <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Milhares de tutores em diversas matérias e níveis de ensino. Aulas
-          online ou presenciais, do fundamental ao vestibular.
-        </p>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/cadastro/aluno"
-            className="inline-flex items-center justify-center bg-primary text-primary-foreground font-semibold rounded-lg px-8 py-3.5 text-base hover:opacity-90 transition-opacity min-w-50"
-          >
-            Quero aprender
-          </Link>
-          <Link
-            href="/cadastro/tutor"
-            className="inline-flex items-center justify-center border-2 border-border text-foreground font-semibold rounded-lg px-8 py-3.5 text-base hover:border-foreground/30 transition-colors min-w-50"
-          >
-            Quero ensinar
-          </Link>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-28">
+        <div className="md:grid md:grid-cols-2 md:gap-12 lg:gap-16 items-center">
+          <div className="text-center md:text-left">
+            <h1 className="text-[clamp(2.25rem,5vw,4rem)] font-bold leading-[1.1] text-ink text-balance">
+              Encontre o tutor ideal para você
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl md:max-w-none leading-relaxed">
+              Milhares de tutores em diversas matérias e níveis de ensino. Aulas
+              online ou presenciais, do fundamental ao vestibular.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row items-center md:items-start justify-center md:justify-start gap-4">
+              <Link
+                href="/cadastro/aluno"
+                className="inline-flex items-center justify-center bg-primary text-primary-foreground font-semibold rounded-lg px-8 py-3.5 text-base hover:opacity-90 transition-opacity min-w-50"
+              >
+                Quero aprender
+              </Link>
+              <Link
+                href="/cadastro/tutor"
+                className="inline-flex items-center justify-center border-2 border-border text-foreground font-semibold rounded-lg px-8 py-3.5 text-base hover:border-foreground/30 transition-colors min-w-50"
+              >
+                Quero ensinar
+              </Link>
+            </div>
+          </div>
+          <div className="mt-12 md:mt-0 flex justify-center md:justify-end">
+            <Image
+              src="/teacher.svg"
+              alt="Professora em reunião no computador"
+              width={480}
+              height={347}
+              className="w-full max-w-md h-auto"
+              priority
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -198,7 +213,7 @@ function FooterSection() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="grid sm:grid-cols-3 gap-8">
           <div>
-            <span className="text-2xl font-semibold tracking-tight text-white">tutoria</span>
+            <span className="text-2xl font-semibold tracking-tight text-white">Tutoria</span>
             <p className="mt-2 text-sm leading-relaxed max-w-[35ch]">
               A plataforma que conecta alunos e tutores de forma simples, rápida e confiável.
             </p>

@@ -58,7 +58,7 @@ export default function NavBar() {
 
     if (isPending) return (
         <nav className="sticky top-0 z-30 w-full border-b border-border bg-background p-4 flex items-center justify-between">
-            <span className="text-3xl font-semibold tracking-tight text-primary">tutoria</span>
+            <span className="text-3xl font-semibold tracking-tight text-primary">Tutoria</span>
         </nav>
     )
 
@@ -71,7 +71,7 @@ export default function NavBar() {
         <nav className="sticky top-0 z-30 w-full border-b border-border bg-background p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-6">
                 <Link href={session ? "/inicio" : "/"} className="text-3xl font-semibold tracking-tight text-primary shrink-0">
-                    tutoria
+                    Tutoria
                 </Link>
 
                 {session && (

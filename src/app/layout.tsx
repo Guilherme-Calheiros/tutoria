@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   title: "Tutoria — Encontre o tutor perfeito",
   description:
     "Plataforma brasileira de conexão entre alunos e tutores particulares. Encontre o tutor ideal para aprender.",
+  icons: "/favicon.svg",
 };
 
 export default function RootLayout({
